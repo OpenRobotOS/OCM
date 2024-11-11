@@ -1,0 +1,14 @@
+# cmake/OCMConfig.cmake.in
+
+@PACKAGE_INIT@
+
+set_and_check(OCMGEN_TARGET_NAME ocm-gen)
+
+# 设置包含目录
+set(OCMGEN_INCLUDE_DIR "@CMAKE_INSTALL_PREFIX@/include")
+
+# 设置库文件路径
+set(OCMGEN_LIBRARY_DIR "@CMAKE_INSTALL_PREFIX@/lib")
+
+# 导入库目标
+include("${CMAKE_CURRENT_LIST_DIR}/ocmgenTargets.cmake")
