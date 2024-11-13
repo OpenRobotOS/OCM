@@ -15,13 +15,9 @@ int main() {
   mutexPtr.LockWrite();
   *mutexPtr.data_ptr_ = 100;
   mutexPtr.UnlockWrite();
+  mutexPtr.LockRead();
   std::cout << "MutexPtr value: " << *mutexPtr.data_ptr_ << std::endl;
-
-  //   // 示例使用 SharedMemoryObject
-  //   openrobot::ocm::SharedMemoryObject<int> sharedMemory;
-  //   sharedMemory.createNew("example-shared-memory", true);
-  //   *sharedMemory() = 256;
-  //   std::cout << "SharedMemoryObject value: " << *sharedMemory() << std::endl;
+  mutexPtr.UnlockRead();
 
   return 0;
 }

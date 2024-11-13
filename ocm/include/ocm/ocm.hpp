@@ -322,33 +322,36 @@ class AtomicPtr {
 
   void operator=(const T& data) { data_ptr_.store(std::make_shared<const T>(data), std::memory_order_release); }
   std::shared_ptr<const T> operator()() const { return data_ptr_.load(std::memory_order_acquire); }
-  SharedMemorySemaphore test;
 
  private:
   std::atomic<std::shared_ptr<const T>> data_ptr_;
 };
 
 template <typename T>
-class MutexPtr {
+class RWLockData {
  public:
-  MutexPtr() { data_ptr_ = std::make_shared<T>(); }
-  explicit MutexPtr(const T& data) { data_ptr_ = std::make_shared<T>(data); }
-  MutexPtr(const MutexPtr&) { throw std::logic_error("[MutexPtr]data copy construct!"); }
-  MutexPtr& operator=(const MutexPtr&) = delete;
-  MutexPtr(MutexPtr&&) = delete;
-  MutexPtr& operator=(MutexPtr&&) = delete;
-  ~MutexPtr() = default;
+  RWLockData() = default;
+  explicit RWLockData(const T& data) : data_ptr_(data) {}
+  RWLockData(const RWLockData&) { throw std::logic_error("[RWLockData]data copy construct!"); }
+  RWLockData& operator=(const RWLockData&) = delete;
+  RWLockData(RWLockData&&) = delete;
+  RWLockData& operator=(RWLockData&&) = delete;
+  ~RWLockData() = default;
 
+  template <typename Callable>
+  auto LockAndExecute(Callable&& func) {
+    mutex.lock();
+    return std::forward<Callable>(func)(data_ptr_);
+  }
+
+ private:
   void LockRead() { mutex.lock_shared(); }
   bool TryLockRead() { return mutex.try_lock_shared(); }
   void UnlockRead() { mutex.unlock_shared(); }
   void LockWrite() { mutex.lock(); }
   bool TryLockWrite() { return mutex.try_lock(); }
   void UnlockWrite() { mutex.unlock(); }
-
-  std::shared_ptr<T> data_ptr_;
-
- private:
+  T data_ptr_;
   std::shared_mutex mutex;
 };
 
