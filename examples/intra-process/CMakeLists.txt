@@ -13,9 +13,12 @@ endif()
 find_package(OCM REQUIRED)
 
 # 添加可执行文件
-add_executable(UsingOCM main.cpp)
+add_executable(AtomicPtr AtomicPtr.cpp)
+add_executable(RWLockData RWLockData.cpp)
+
 
 # 链接 OCM 库
-target_link_libraries(UsingOCM PRIVATE OCM::OCM)
+target_link_libraries(AtomicPtr PRIVATE OPENROBOT::OCM)
+target_link_libraries(RWLockData PRIVATE OPENROBOT::OCM)
 
 

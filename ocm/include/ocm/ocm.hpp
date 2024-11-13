@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <cassert>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <shared_mutex>
 #include <stdexcept>
@@ -21,53 +22,54 @@ namespace openrobot::ocm {
  * shared memory
  */
 
-/*!
- * A POSIX semaphore for shared memory.
- * See https://linux.die.net/man/7/sem_overview for more deatils
- */
 class SharedMemorySemaphore {
  public:
   /*!
-   * If semaphore is unitialized, initialize it and set its value.  This can be
-   * called as many times as you want safely. It must be called at least once.
-   * Only one process needs to call this, even if it is used in multiple
-   * processes.
-   *
-   * Note that if init() is called after the semaphore has been initialized, it
-   * will not change its value.
-   * @param value The initial value of the semaphore.
+   * 打开现有的命名信号量，如果信号量不存在，则创建它。
+   * @param sem_name 信号量的名字
+   * @param value 信号量的初始值
    */
-  void init(unsigned int value) {
+  void init(const std::string& sem_name, unsigned int value) {
     if (!_init) {
-      if (sem_init(&_sem, 1, value)) {
-        printf("[ERROR] Failed to initialize shared memory semaphore: %s\n", strerror(errno));
+      _sem = sem_open(sem_name.c_str(), O_CREAT, 0644, value);
+      if (_sem == SEM_FAILED) {
+        std::cerr << "[ERROR] Failed to initialize shared memory semaphore: " << strerror(errno) << "\n";
       } else {
         _init = true;
+        _sem_name = sem_name;
       }
     }
   }
 
   /*!
-   * Increment the value of the semaphore.
+   * 增加信号量的值。
    */
-  void increment() { sem_post(&_sem); }
+  void increment() {
+    if (sem_post(_sem) != 0) {
+      std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
+    }
+  }
 
   /*!
-   * If the semaphore's value is > 0, decrement the value.
-   * Otherwise, wait until its value is > 0, then decrement.
+   * 等待信号量的值大于0，如果信号量为0，则阻塞等待。
    */
-  void decrement() { sem_wait(&_sem); }
+  void decrement() {
+    if (sem_wait(_sem) != 0) {
+      std::cerr << "[ERROR] Failed to decrement semaphore: " << strerror(errno) << "\n";
+    }
+  }
 
   /*!
-   * If the semaphore's value is > 0, decrement the value and return true
-   * Otherwise, return false (doesn't decrement or wait)
-   * @return
+   * 尝试减少信号量的值，如果信号量为0，则不会阻塞，直接返回 false。
+   * @return 如果成功减少信号量返回 true，否则返回 false。
    */
-  bool tryDecrement() { return (sem_trywait(&_sem)) == 0; }
+  bool tryDecrement() { return (sem_trywait(_sem) == 0); }
 
   /*!
-   * Like decrement, but after waiting ms milliseconds, will give up
-   * Returns true if the semaphore is successfully decremented
+   * 设置超时的等待信号量功能。
+   * @param seconds 等待的秒数。
+   * @param nanoseconds 等待的纳秒数。
+   * @return 如果在超时前成功获得信号量，则返回 true；否则返回 false。
    */
   bool decrementTimeout(uint64_t seconds, uint64_t nanoseconds) {
     struct timespec ts;
@@ -76,22 +78,26 @@ class SharedMemorySemaphore {
     ts.tv_sec += seconds;
     ts.tv_sec += ts.tv_nsec / 1000000000;
     ts.tv_nsec %= 1000000000;
-#ifdef linux
-    return (sem_timedwait(&_sem, &ts) == 0);
-#else
-    return (sem_trywait(&_sem) == 0);
-#endif
+
+    return (sem_timedwait(_sem, &ts) == 0);
   }
 
   /*!
-   * Delete the semaphore.  Note that deleting a semaphore in one process while
-   * another is still using it results in very strange behavior.
+   * 删除命名信号量，确保其他进程不再使用它。
    */
-  void destroy() { sem_destroy(&_sem); }
+  void destroy() {
+    if (sem_close(_sem) != 0) {
+      std::cerr << "[ERROR] Failed to close semaphore: " << strerror(errno) << "\n";
+    }
+    if (sem_unlink(_sem_name.c_str()) != 0) {
+      std::cerr << "[ERROR] Failed to unlink semaphore: " << strerror(errno) << "\n";
+    }
+  }
 
  private:
-  sem_t _sem;
-  bool _init = false;
+  sem_t* _sem = nullptr;  // 信号量
+  std::string _sem_name;  // 信号量的名字
+  bool _init = false;     // 是否初始化
 };
 
 /*!
@@ -331,28 +337,23 @@ template <typename T>
 class RWLockData {
  public:
   RWLockData() = default;
-  explicit RWLockData(const T& data) : data_ptr_(data) {}
+  explicit RWLockData(const T& data) : data_(data) {}
   RWLockData(const RWLockData&) { throw std::logic_error("[RWLockData]data copy construct!"); }
   RWLockData& operator=(const RWLockData&) = delete;
   RWLockData(RWLockData&&) = delete;
   RWLockData& operator=(RWLockData&&) = delete;
   ~RWLockData() = default;
 
-  template <typename Callable>
-  auto LockAndExecute(Callable&& func) {
-    mutex.lock();
-    return std::forward<Callable>(func)(data_ptr_);
-  }
+  void LockRead() { mutex_.lock_shared(); }
+  bool TryLockRead() { return mutex_.try_lock_shared(); }
+  void UnlockRead() { mutex_.unlock_shared(); }
+  void LockWrite() { mutex_.lock(); }
+  bool TryLockWrite() { return mutex_.try_lock(); }
+  void UnlockWrite() { mutex_.unlock(); }
+  T data_;
 
  private:
-  void LockRead() { mutex.lock_shared(); }
-  bool TryLockRead() { return mutex.try_lock_shared(); }
-  void UnlockRead() { mutex.unlock_shared(); }
-  void LockWrite() { mutex.lock(); }
-  bool TryLockWrite() { return mutex.try_lock(); }
-  void UnlockWrite() { mutex.unlock(); }
-  T data_ptr_;
-  std::shared_mutex mutex;
+  std::shared_mutex mutex_;
 };
 
 /*!

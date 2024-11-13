@@ -4,9 +4,48 @@ if(POLICY CMP0111)
 endif()
 project(OCM VERSION 1.0 DESCRIPTION "One Communication Middleware" LANGUAGES CXX)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
+endif()
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/opt/openrobotlib" CACHE PATH "Default install path" FORCE)
 endif()
+
+option(SPDLOG_SYSTEM_INCLUDES "Include as system headers (skip for clang-tidy)." OFF)
+option(SPDLOG_INSTALL "Generate the install target" ${SPDLOG_MASTER_PROJECT})
+option(SPDLOG_USE_STD_FORMAT "Use std::format instead of fmt library." ON)
+option(SPDLOG_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
+option(SPDLOG_FMT_EXTERNAL_HO "Use external fmt header-only library instead of bundled" OFF)
+option(SPDLOG_NO_EXCEPTIONS "Compile with -fno-exceptions. Call abort() on any spdlog exceptions" OFF)
+option(SPDLOG_BUILD_ALL "Build all artifacts" OFF)
+# build shared option
+option(SPDLOG_BUILD_SHARED "Build shared library" OFF)
+# precompiled headers option
+option(SPDLOG_ENABLE_PCH "Build static or shared library using precompiled header to speed up compilation time" OFF)
+
+# build position independent code
+option(SPDLOG_BUILD_PIC "Build position independent code (-fPIC)" OFF)
+
+# example options
+option(SPDLOG_BUILD_EXAMPLE "Build example" ${SPDLOG_MASTER_PROJECT})
+option(SPDLOG_BUILD_EXAMPLE_HO "Build header only example" OFF)
+
+# testing options
+option(SPDLOG_BUILD_TESTS "Build tests" OFF)
+option(SPDLOG_BUILD_TESTS_HO "Build tests using the header only version" OFF)
+
+# bench options
+option(SPDLOG_BUILD_BENCH "Build benchmarks (Requires https://github.com/google/benchmark.git to be installed)" OFF)
+
+# sanitizer options
+option(SPDLOG_SANITIZE_ADDRESS "Enable address sanitizer in tests" OFF)
+option(SPDLOG_SANITIZE_THREAD "Enable thread sanitizer in tests" OFF)
+if(SPDLOG_SANITIZE_ADDRESS AND SPDLOG_SANITIZE_THREAD)
+    message(FATAL_ERROR "SPDLOG_SANITIZE_ADDRESS and SPDLOG_SANITIZE_THREAD are mutually exclusive")
+endif()
+
+# warning options
+option(SPDLOG_BUILD_WARNINGS "Enable compiler warnings" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -32,7 +71,7 @@ install(TARGETS OCM
 
 install(EXPORT OCMTargets
     FILE OCMTargets.cmake
-    NAMESPACE OCM::
+    NAMESPACE OPENROBOT::
     DESTINATION lib/cmake/OCM
 )
 
