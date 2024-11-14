@@ -51,30 +51,43 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_package(lcm REQUIRED HINTS "/opt/openrobotlib/lib/lcm/cmake")
+
 add_compile_options(-no-pie -O3 -march=native)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-add_library(OCM INTERFACE)
-target_include_directories(OCM INTERFACE
+add_library(OCM src/ocm.cpp)
+
+# 1. 指定头文件路径
+target_include_directories(OCM PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>  # 安装时的头文件路径
 )
 
-# 安装头文件
+# 2. 链接外部库
+target_link_libraries(OCM ${LCM_NAMESPACE}lcm)
+
+# 3. 安装头文件
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 
+# 4. 安装库文件
 install(TARGETS OCM
     EXPORT OCMTargets
+    RUNTIME DESTINATION bin    # 如果是可执行文件（.exe / .out）
+    LIBRARY DESTINATION lib    # 如果是动态库（.so / .dll）
+    ARCHIVE DESTINATION lib    # 如果是静态库（.a）
     INCLUDES DESTINATION include
 )
 
+# 5. 导出目标信息
 install(EXPORT OCMTargets
     FILE OCMTargets.cmake
     NAMESPACE OPENROBOT::
     DESTINATION lib/cmake/OCM
 )
 
+# 6. 配置并安装包配置文件
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
