@@ -9,7 +9,9 @@ include(${LCM_USE_FILE})
 FILE(GLOB example_message_definitions "${CMAKE_CURRENT_LIST_DIR}/types/*.lcm")
 
 # Generate headers from message definition
+set(python_args PYTHON_SOURCES python_sources)
 lcm_wrap_types(CPP_HEADERS cpp_headers
+  ${python_args}
   ${example_message_definitions})
 
 # Create library from all the messages

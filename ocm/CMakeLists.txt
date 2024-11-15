@@ -11,47 +11,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/opt/openrobotlib" CACHE PATH "Default install path" FORCE)
 endif()
 
-option(SPDLOG_SYSTEM_INCLUDES "Include as system headers (skip for clang-tidy)." OFF)
-option(SPDLOG_INSTALL "Generate the install target" ${SPDLOG_MASTER_PROJECT})
-option(SPDLOG_USE_STD_FORMAT "Use std::format instead of fmt library." ON)
-option(SPDLOG_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
-option(SPDLOG_FMT_EXTERNAL_HO "Use external fmt header-only library instead of bundled" OFF)
-option(SPDLOG_NO_EXCEPTIONS "Compile with -fno-exceptions. Call abort() on any spdlog exceptions" OFF)
-option(SPDLOG_BUILD_ALL "Build all artifacts" OFF)
-# build shared option
-option(SPDLOG_BUILD_SHARED "Build shared library" OFF)
-# precompiled headers option
-option(SPDLOG_ENABLE_PCH "Build static or shared library using precompiled header to speed up compilation time" OFF)
-
-# build position independent code
-option(SPDLOG_BUILD_PIC "Build position independent code (-fPIC)" OFF)
-
-# example options
-option(SPDLOG_BUILD_EXAMPLE "Build example" ${SPDLOG_MASTER_PROJECT})
-option(SPDLOG_BUILD_EXAMPLE_HO "Build header only example" OFF)
-
-# testing options
-option(SPDLOG_BUILD_TESTS "Build tests" OFF)
-option(SPDLOG_BUILD_TESTS_HO "Build tests using the header only version" OFF)
-
-# bench options
-option(SPDLOG_BUILD_BENCH "Build benchmarks (Requires https://github.com/google/benchmark.git to be installed)" OFF)
-
-# sanitizer options
-option(SPDLOG_SANITIZE_ADDRESS "Enable address sanitizer in tests" OFF)
-option(SPDLOG_SANITIZE_THREAD "Enable thread sanitizer in tests" OFF)
-if(SPDLOG_SANITIZE_ADDRESS AND SPDLOG_SANITIZE_THREAD)
-    message(FATAL_ERROR "SPDLOG_SANITIZE_ADDRESS and SPDLOG_SANITIZE_THREAD are mutually exclusive")
-endif()
-
-# warning options
-option(SPDLOG_BUILD_WARNINGS "Enable compiler warnings" OFF)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(lcm REQUIRED HINTS "/opt/openrobotlib/lib/lcm/cmake")
+find_package(spdlog REQUIRED HINTS "/opt/openrobotlib/lib/cmake/spdlog")
 
 add_compile_options(-no-pie -O3 -march=native)
 
@@ -66,7 +31,7 @@ target_include_directories(OCM PUBLIC
 )
 
 # 2. 链接外部库
-target_link_libraries(OCM ${LCM_NAMESPACE}lcm)
+target_link_libraries(OCM PUBLIC ${LCM_NAMESPACE}lcm spdlog::spdlog)
 
 # 3. 安装头文件
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
@@ -74,9 +39,9 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 # 4. 安装库文件
 install(TARGETS OCM
     EXPORT OCMTargets
-    RUNTIME DESTINATION bin    # 如果是可执行文件（.exe / .out）
-    LIBRARY DESTINATION lib    # 如果是动态库（.so / .dll）
-    ARCHIVE DESTINATION lib    # 如果是静态库（.a）
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
     INCLUDES DESTINATION include
 )
 

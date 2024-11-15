@@ -1,7 +1,30 @@
 @PACKAGE_INIT@
 
+# Find spdlog if not found already
+find_package(spdlog REQUIRED)
+
+# Set spdlog as an imported target
+set(OCM_SPDLOG_INCLUDE_DIRS ${spdlog_INCLUDE_DIRS})
+set(OCM_SPDLOG_LIBRARIES spdlog::spdlog)
+
+# Optionally, expose these to downstream packages
+set(OCM_INCLUDE_DIRS ${OCM_SPDLOG_INCLUDE_DIRS} CACHE STRING "OCM include directories")
+set(OCM_LIBRARIES ${OCM_SPDLOG_LIBRARIES} CACHE STRING "OCM libraries")
+
+# 查找 LCM 库
+find_package(lcm REQUIRED)
+
+# 设置 LCM 的包含目录和库路径
+set(OCM_LCM_INCLUDE_DIRS ${LCM_INCLUDE_DIRS})
+set(OCM_LCM_LIBRARIES lcm::lcm)
+
+# 可选：将 LCM 的包含目录和库路径暴露给下游项目
+set(OCM_INCLUDE_DIRS ${OCM_INCLUDE_DIRS} ${OCM_LCM_INCLUDE_DIRS} CACHE STRING "OCM include directories")
+set(OCM_LIBRARIES ${OCM_LIBRARIES} ${OCM_LCM_LIBRARIES} CACHE STRING "OCM libraries")
+
+
 # 设置安装路径
-set(OCM_CMAKE_DIR "${CMAKE_INSTALL_PREFIX}/lib/cmake/OCM")
+set(OCM_CMAKE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/OCM")
 
 # 引入目标配置文件
 include("${OCM_CMAKE_DIR}/OCMTargets.cmake")
