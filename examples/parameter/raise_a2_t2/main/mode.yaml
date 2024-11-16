@@ -1,0 +1,3 @@
+# mode: "simulation" # "default" or "simulation" or "real_robot" or "leg_test"
+mode: "real_robot"
+suffix: ""

@@ -1,28 +1,44 @@
-namespace openrobot::ocm {
-// 单例类
-class Singleton {
- public:
-  // 删除拷贝构造函数和赋值运算符，防止复制
-  Singleton(const Singleton&) = delete;
-  Singleton& operator=(const Singleton&) = delete;
+#include <yaml-cpp/yaml.h>
+#include <filesystem>
+#include <unordered_map>
+#include "logger/logger.hpp"
 
-  // 提供一个静态方法来获取单例实例
-  static Singleton& getInstance() {
-    // C++11及以上保证静态局部变量的线程安全初始化
-    static Singleton instance;
+namespace openrobot::ocm {
+class ParameterHandler {
+ public:
+  // 删除拷贝构造函数和赋值运算符
+  ParameterHandler(const ParameterHandler&) = delete;
+  ParameterHandler& operator=(const ParameterHandler&) = delete;
+
+  // 提供一个全局访问点
+  static ParameterHandler& getInstance() {
+    static ParameterHandler instance;
     return instance;
   }
 
-  // 示例成员函数
-  void doSomething() { std::cout << "Singleton instance address: " << this << std::endl; }
+  void doSomething() { std::cout << "ParameterHandler instance is doing something.\n"; }
 
  private:
   // 私有构造函数，防止外部实例化
-  Singleton() { std::cout << "Singleton constructor called." << std::endl; }
+  ParameterHandler() { std::cout << "ParameterHandler instance created.\n"; }
 
-  // 可选：私有析构函数
-  ~Singleton() { std::cout << "Singleton destructor called." << std::endl; }
+  ~ParameterHandler() { std::cout << "ParameterHandler instance destroyed.\n"; }
+
+  void find_yaml_files(const std::filesystem::path& dir, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>& file_map) {
+    // 遍历文件夹中的内容
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
+      if (entry.is_regular_file() && entry.path().extension() == ".yaml") {
+        // 获取文件夹名称
+        std::string folder_name = entry.path().parent_path().filename().string();
+        // 获取文件名，不包括扩展名
+        std::string file_name = entry.path().stem().string();
+
+        // 在 map 中插入文件夹和文件信息
+        file_map[folder_name][file_name] = entry.path().string();
+      }
+    }
+  }
+
+  openrobot::ocm::Logger& logger = openrobot::ocm::Logger::getInstance();
 };
-
-// Singleton& singleton = Singleton::getInstance();
 }  // namespace openrobot::ocm

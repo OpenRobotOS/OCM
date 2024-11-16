@@ -93,7 +93,7 @@ class Logger {
       spdlog::register_logger(logger_);
     } catch (const spdlog::spdlog_ex& ex) {
       // 处理初始化失败的情况
-      std::cerr << "日志初始化失败: " << ex.what() << std::endl;
+      std::cerr << "Logger initialization failed: " << ex.what() << std::endl;
     }
   }
 
