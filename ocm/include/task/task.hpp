@@ -9,13 +9,15 @@
 
 namespace openrobot::ocm {
 enum class TaskType : uint8_t {
-  TRIGGER = 0,
-  TIMER,
+  INTERNAL_TIMER = 0,
+  EXTERNAL_TIMER,
+  TRIGGER,
 };
 
 class TaskBase {
  public:
   TaskBase(const std::string& sem_name, const std::string& thread_name, TaskType type);
+  TaskBase(const std::string& thread_name);
   ~TaskBase() = default;
 
   virtual void Run();

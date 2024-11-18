@@ -4,9 +4,15 @@
 
 namespace openrobot::ocm {
 TaskBase::TaskBase(const std::string& sem_name, const std::string& thread_name, TaskType type) : semaphore_(sem_name, 0), type_(type) {
-  if (type == TaskType::TIMER) {
+  if (type == TaskType::INTERNAL_TIMER) {
     timer_loop_.SetPeriod(0.01);
   }
+  TaskCreate(thread_name);
+  run_duration_.store(0.0);
+  loop_duration_.store(0.0);
+}
+TaskBase::TaskBase(const std::string& thread_name) : semaphore_("", 0), type_(TaskType::INTERNAL_TIMER) {
+  timer_loop_.SetPeriod(0.01);
   TaskCreate(thread_name);
   run_duration_.store(0.0);
   loop_duration_.store(0.0);
@@ -30,9 +36,9 @@ void TaskBase::TaskStop() {
 void TaskBase::TaskDestroy() {
   thread_alive_.store(false);
   loop_run_.store(false);
-  if (semaphore_.GetValue() == 0 && type_ == TaskType::TRIGGER) {
+  if (semaphore_.GetValue() == 0 && type_ == TaskType::EXTERNAL_TIMER) {
     semaphore_.Increment();
-  } else if (type_ == TaskType::TIMER) {
+  } else if (type_ == TaskType::INTERNAL_TIMER) {
     timer_loop_.ResetClock();
   }
   if (thread_.joinable()) {
@@ -50,19 +56,19 @@ void TaskBase::Loop() {
   TimerOnce loop_timer;
   while (thread_alive_.load()) {
     while (loop_run_.load()) {
+      if (type_ == TaskType::EXTERNAL_TIMER) {
+        semaphore_.Decrement();
+      }
       loop_duration_.store(loop_timer.getMs());
-
       TimerOnce run_timer;
       Run();
       run_duration_.store(run_timer.getMs());
 
-      if (type_ == TaskType::TIMER) {
+      if (type_ == TaskType::INTERNAL_TIMER) {
         timer_loop_.SleepUntilNextLoop();
         if (run_duration_.load() > timer_loop_.GetPeriod()) {
           timer_loop_.ResetClock();
         }
-      } else if (type_ == TaskType::TRIGGER) {
-        semaphore_.Decrement();
       }
     }
   }
@@ -73,7 +79,7 @@ double TaskBase::GetRunDuration() const { return run_duration_.load(); }
 double TaskBase::GetLoopDuration() const { return loop_duration_.load(); }
 
 void TaskBase::SetPeriod(double period) {
-  if (type_ == TaskType::TIMER) {
+  if (type_ == TaskType::INTERNAL_TIMER) {
     timer_loop_.SetPeriod(period);
   } else {
     logger.error("[TASK] SetPeriod is not supported for trigger task type");

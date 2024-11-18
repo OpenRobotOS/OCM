@@ -18,19 +18,19 @@ struct LoggerConfig {
   size_t thread_count = 1;                        // 后台线程数
 };
 
-// Logger 单例类
-class Logger {
+// LogAnywhere 单例类
+class LogAnywhere {
  public:
   // 获取单例实例的静态方法，接受可选的配置参数
-  static Logger& getInstance(const LoggerConfig& config = LoggerConfig()) {
+  static LogAnywhere& getInstance(const LoggerConfig& config = LoggerConfig()) {
     // 局部静态变量，确保只初始化一次，并且线程安全
-    static Logger instance(config);
+    static LogAnywhere instance(config);
     return instance;
   }
 
   // 删除拷贝构造函数和赋值运算符，防止拷贝
-  Logger(const Logger&) = delete;
-  Logger& operator=(const Logger&) = delete;
+  LogAnywhere(const LogAnywhere&) = delete;
+  LogAnywhere& operator=(const LogAnywhere&) = delete;
 
   // 提供日志记录的方法
   template <typename... Args>
@@ -68,7 +68,7 @@ class Logger {
 
  private:
   // 私有构造函数，接受配置参数
-  Logger(const LoggerConfig& config) {
+  LogAnywhere(const LoggerConfig& config) {
     try {
       // 确保日志目录存在
       std::filesystem::create_directories(std::filesystem::path(config.log_file).parent_path());
@@ -93,11 +93,11 @@ class Logger {
       spdlog::register_logger(logger_);
     } catch (const spdlog::spdlog_ex& ex) {
       // 处理初始化失败的情况
-      std::cerr << "Logger initialization failed: " << ex.what() << std::endl;
+      std::cerr << "LogAnywhere initialization failed: " << ex.what() << std::endl;
     }
   }
 
-  ~Logger() {
+  ~LogAnywhere() {
     // 在程序结束时，确保日志器被正确关闭
     spdlog::shutdown();
   }

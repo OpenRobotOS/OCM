@@ -1,35 +1,34 @@
-RESIDENT_SETTING:
-  gamepad:
-    runner:
-      - name: "gamepad_communication"
-        enable: True
-        debug_info: True
-    period: 0
-    priority: 50
-    cpu_affinity: 1024 # CPU 10
-    start_delay: 0
+RESIDENT_TASK:
+  - name: "gamepad"
+    task:
+      - node:
+          - name: "gamepad_communication"
+            output_enable: True
+        period: 0
+        priority: 50
+        cpu_affinity: []
+        pre_node: []
 ################################################################################################################
 
-ACTION_SETTING:
+ACTION_TASK:
   ###########################################################################################################################
   - name: "DEFAULT"
-    module:
-      - runner:
+    task:
+      - node:
           - name: "passive"
-            enable: True
-            debug_info: True
-        period: [0.001, 0.001]
+            output_enable: True
+        period: 0.001
         priority: 80
-        cpu_affinity: 12 # CPU 2, 3
+        cpu_affinity: []
+        pre_node: []
 
   ###########################################################################################################################
   - name: "PASSIVE"
-    module:
-      - runner:
+    task:
+      - node:
           - name: "passive"
-            enable: True
-            debug_info: True
-        period: [0.001, 0.001]
+            output_enable: True
+        period: 0.001
         priority: 80
-        cpu_affinity: 12 # CPU 2, 3
-
+        cpu_affinity: []
+        pre_node: []
