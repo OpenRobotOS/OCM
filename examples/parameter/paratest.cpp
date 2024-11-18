@@ -10,9 +10,9 @@ int main() {
   openrobot::ocm::ConfigCollect config_collector;
 
   // Update the config collector with data from YAML files
-  config_collector.update_from_yaml(base_path);
+  config_collector.update_from_yaml("action_manager_test2_a", base_path);
 
-  std::cout << "ActionSetting B name: " << config_collector.get_action_setting_a_().ResidentSetting()[0].Name() << std::endl;
-
+  config_collector.print();
+  std::cout << config_collector.get_ActionManager_Test2_A().ResidentSetting().Gamepad().Priority() << std::endl;
   return 0;
 }

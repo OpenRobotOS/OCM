@@ -28,6 +28,17 @@ void SharedMemorySemaphore::Increment() {
 }
 
 /*!
+ * 增加信号量的值。
+ */
+void SharedMemorySemaphore::Increment(unsigned int value) {
+  for (unsigned int i = 0; i < value; ++i) {
+    if (sem_post(sem_) != 0) {
+      std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
+    }
+  }
+}
+
+/*!
  * 等待信号量的值大于0，如果信号量为0，则阻塞等待。
  */
 void SharedMemorySemaphore::Decrement() {
@@ -69,6 +80,12 @@ void SharedMemorySemaphore::Destroy() {
   if (sem_unlink(name_.c_str()) != 0) {
     std::cerr << "[ERROR] Failed to unlink semaphore: " << strerror(errno) << "\n";
   }
+}
+
+int SharedMemorySemaphore::GetValue() const {
+  int value;
+  sem_getvalue(sem_, &value);
+  return value;
 }
 
 SharedMemoryData::SharedMemoryData(const std::string& name, size_t size) : sem_(name, 1), data_(nullptr), fd_(0) { Init(name, size); }

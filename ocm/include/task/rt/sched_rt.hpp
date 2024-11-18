@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <string>
 
+namespace openrobot::ocm::rt {
+
 #define SCHED_OTHER 0
 #define SCHED_FIFO 1
 #define SCHED_RR 2
@@ -46,8 +48,6 @@
 
 #define RLIMIT_DLDLINE 16
 #define RLIMIT_DLRTIME 17
-
-namespace raise_ctrl::rt {
 struct sched_attr_t {
   __u32 size;
 
@@ -98,4 +98,4 @@ inline void set_thread_name(const std::string& name) {
   (void)iErr;
 }
 
-}  // namespace raise_ctrl::rt
+}  // namespace openrobot::ocm::rt

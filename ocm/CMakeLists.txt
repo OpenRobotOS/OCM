@@ -31,7 +31,7 @@ add_compile_options(-no-pie -O3 -march=native)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-add_library(OCM STATIC src/ocm.cpp)
+add_library(OCM STATIC src/ocm.cpp src/task.cpp)
 
 # 1. 指定头文件路径
 target_include_directories(

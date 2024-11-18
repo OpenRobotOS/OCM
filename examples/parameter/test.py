@@ -22,7 +22,7 @@ def determine_type(name, value, namespaces):
     if isinstance(value, bool):
         return "bool"
     elif isinstance(value, int):
-        return "int"
+        return "double"
     elif isinstance(value, float):
         return "double"
     elif isinstance(value, str):
@@ -110,13 +110,13 @@ def generate_class(class_name, data, namespaces):
 
         # Generate getter method
         getter_name = capitalize(key)
-        if field_type in ["bool", "int", "double", "std::string"]:
-            # For primitive and simple types, return by value
+        if field_type in ["bool", "int", "double", "std::string"] or field_type.startswith("std::vector<"):
+            # Return by value (copy)
             getter_methods.append(f"        {field_type} {getter_name}() const {{")
             getter_methods.append(f"            return {field_name};")
             getter_methods.append(f"        }}\n")
         else:
-            # For complex types (e.g., std::vector, custom classes), return by const reference
+            # For custom types, return const reference
             getter_methods.append(f"        const {field_type}& {getter_name}() const {{")
             getter_methods.append(f"            return {field_name};")
             getter_methods.append(f"        }}\n")
@@ -125,18 +125,30 @@ def generate_class(class_name, data, namespaces):
     class_code = []
     class_code.append(f"class {class_name} {{")
     class_code.append("public:")
-    # 添加 update_from_yaml 方法
-    class_code.append("    void update_from_yaml(const YAML::Node& node) {")
 
+    # 添加默认构造函数和析构函数
+    class_code.append(f"    {class_name}() = default;")
+    class_code.append(f"    ~{class_name}() = default;\n")
+
+    # 删除拷贝构造函数和赋值操作符
+    class_code.append(f"    {class_name}(const {class_name}&) = default;")
+    class_code.append(f"    {class_name}& operator=(const {class_name}&) = default;\n")
+
+    # 删除移动构造函数和赋值操作符
+    class_code.append(f"    {class_name}({class_name}&&) = default;")
+    class_code.append(f"    {class_name}& operator=({class_name}&&) = default;\n")
+
+    # 添加 update_from_yaml 方法
+    class_code.append("    void update_from_yaml(const YAML::Node& auto_yaml_node) {")
     for key, value in data.items():
         field_name = sanitize_field_name(key)
         field_type = determine_type(key, value, namespaces)
 
         if field_type.startswith("std::vector<"):
             elem_type = field_type[len("std::vector<"):-1]
-            class_code.append(f"        if(node[\"{key}\"]) {{")
+            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {{")
             class_code.append(f"            {field_name}.clear();")
-            class_code.append(f"            for(auto& item : node[\"{key}\"]) {{")
+            class_code.append(f"            for(auto& item : auto_yaml_node[\"{key}\"]) {{")
             if elem_type in ["std::string", "bool", "int", "double"]:
                 class_code.append(f"                {field_name}.push_back(item.as<{elem_type}>());")
             else:
@@ -146,17 +158,42 @@ def generate_class(class_name, data, namespaces):
                 class_code.append(f"                {field_name}.push_back(elem);")
             class_code.append(f"            }}")
             class_code.append(f"        }}")
-        elif field_type in ["std::string", "bool", "int", "double"]:
-            class_code.append(f"        if(node[\"{key}\"]) {field_name} = node[\"{key}\"].as<{field_type}>();")
+        elif field_type in ["bool", "int", "double", "std::string"]:
+            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {field_name} = auto_yaml_node[\"{key}\"].as<{field_type}>();")
         else:
             # field_type 是一个自定义类，使用全限定名
-            class_code.append(f"        if(node[\"{key}\"]) {field_name}.update_from_yaml(node[\"{key}\"]);")
+            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {field_name}.update_from_yaml(auto_yaml_node[\"{key}\"]);")
 
     class_code.append("    }\n")
 
     # 添加 getter methods
     for getter in getter_methods:
         class_code.append(getter)
+
+    # 添加 print 方法，增加 indent_level 参数
+    class_code.append("    void print(int indent_level = 0) const {")
+    class_code.append("        std::string indent(indent_level * 4, ' ');")
+    class_code.append(f"        std::cout << indent << \"{class_name}:\" << std::endl;")
+    for key, value in data.items():
+        field_name = sanitize_field_name(key)
+        field_type = determine_type(key, value, namespaces)
+        if field_type in ["bool", "int", "double", "std::string"]:
+            class_code.append(f"        std::cout << indent << \"    {field_name}: \" << {field_name} << std::endl;")
+        elif field_type.startswith("std::vector<"):
+            class_code.append(f"        std::cout << indent << \"    {field_name}: [\" << std::endl;")
+            class_code.append(f"        for(const auto& item : {field_name}) {{")
+            elem_type = field_type[len("std::vector<"):-1]
+            if elem_type in ["bool", "int", "double", "std::string"]:
+                class_code.append(f"            std::cout << indent << \"        \" << item << std::endl;")
+            else:
+                class_code.append(f"            item.print(indent_level + 2);")
+            class_code.append(f"        }}")
+            class_code.append(f"        std::cout << indent << \"    ]\" << std::endl;")
+        else:
+            # 自定义类型，调用其 print 方法
+            class_code.append(f"        std::cout << indent << \"    {field_name}:\" << std::endl;")
+            class_code.append(f"        {field_name}.print(indent_level + 1);")
+    class_code.append("    }\n")
 
     # 添加 private 访问权限
     class_code.append("private:")
@@ -194,7 +231,12 @@ def print_generated_classes():
         print(class_name)
 
 def generate_config_collect_class():
-    """在 generated_classes.hpp 中生成 ConfigCollect 类，包含所有顶级类的私有成员变量、公共 getter 方法以及 update_from_yaml 方法"""
+    """在 generated_classes.hpp 中生成 ConfigCollect 类，包含所有顶级类的私有成员变量、公共 getter 方法以及 update_from_yaml 方法。
+    为每个成员变量增加一个单独的 update_from_yaml 函数接口，并将其放入 private。
+    增加一个公共函数，可以使用字符串输入（通过 if-else 语句）调用独立的 update_from_yaml。
+    调用时的字符串为成员变量名，驼峰命名转换为下划线连接的全小写形式，确保不会出现连续的下划线。
+    增加一个 update_from_yaml_all 函数，调用所有成员变量的更新函数。
+    """
     if not generated_top_classes:
         print("没有生成任何顶级类，跳过 ConfigCollect 类的生成。")
         return
@@ -202,75 +244,158 @@ def generate_config_collect_class():
     with open("generated_classes.hpp", "a") as f:
         # 开始生成 ConfigCollect 类
         f.write("class ConfigCollect {\npublic:\n")
+
+        # 添加默认构造函数和析构函数
+        f.write("    ConfigCollect() = default;\n")
+        f.write("    ~ConfigCollect() = default;\n\n")
+
+        # 默认的拷贝构造函数和赋值操作符
+        f.write("    ConfigCollect(const ConfigCollect&) = delete;\n")
+        f.write("    ConfigCollect& operator=(const ConfigCollect&) = delete;\n\n")
+
+        # 默认的移动构造函数和赋值操作符
+        f.write("    ConfigCollect(ConfigCollect&&) = delete;\n")
+        f.write("    ConfigCollect& operator=(ConfigCollect&&) = delete;\n\n")
         
-        # 添加 update_from_yaml 方法
-        f.write("    void update_from_yaml(const std::string& base_path) {\n")
-        f.write("        YAML::Node node;\n\n")
-        for full_class_name in generated_top_classes:
-            # 分割全限定类名
+        # 添加公共的 update_from_yaml 函数，接收字符串参数
+        f.write("    void update_from_yaml(const std::string& name, const std::string& base_path) {\n")
+        f.write("        if (name.empty()) {\n")
+        f.write("            return;\n")
+        f.write("        }\n")
+        # 初始化是否匹配的标志
+        f.write("        bool matched = false;\n")
+        # 开始生成 if-else 语句，根据输入的字符串调用对应的私有函数
+        for idx, full_class_name in enumerate(generated_top_classes):
+            # 处理命名空间和变量名
             parts = full_class_name.split("::")
-            
-            # 移除所有 'auto_' 前缀
             parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
-            
-            # 确保至少有两个部分（命名空间和类名）
-            if len(parts) < 2:
-                print(f"全限定类名 '{full_class_name}' 不符合预期格式，跳过路径生成。")
-                continue
-            
-            # 移除最后一个类名
-            dir_parts = parts[:-2]  # 去掉最后两个部分，最后一部分是文件名，其前一部分是多余目录
-            yaml_class_name = parts[-1]
-            
+            parts_without_class = parts[:-1]
+            class_name = parts[-1]
+            var_name_with_ns = "_".join(parts_without_class)
+            # 将 var_name_with_ns 转换为 snake_case，确保没有连续下划线
+            var_name_snake = camel_to_snake(var_name_with_ns)
+            # 去除连续的下划线
+            var_name_snake = re.sub('_+', '_', var_name_snake)
+            # 生成 if-else 语句
+            if idx == 0:
+                f.write(f"        if (name == \"{var_name_snake}\") {{\n")
+            else:
+                f.write(f"        else if (name == \"{var_name_snake}\") {{\n")
+            f.write(f"            update_from_yaml_{var_name_snake}(base_path);\n")
+            f.write("            matched = true;\n")
+            f.write("        }\n")
+        # 添加未匹配时的处理
+        f.write("        if (!matched) {\n")
+        f.write("            // 未找到匹配的配置项\n")
+        f.write("            std::cerr << \"[ConfigCollect] No matching configuration for '\" << name << \"'\" << std::endl;\n")
+        f.write("        }\n")
+        f.write("    }\n\n")
+
+        # 添加 update_from_yaml_all 函数，调用所有成员变量的更新函数
+        f.write("    void update_from_yaml_all(const std::string& base_path) {\n")
+        for full_class_name in generated_top_classes:
+            # 处理命名空间和变量名
+            parts = full_class_name.split("::")
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
+            var_name_with_ns = "_".join(parts_without_class)
+            # 将 var_name_with_ns 转换为 snake_case，确保没有连续下划线
+            var_name_snake = camel_to_snake(var_name_with_ns)
+            var_name_snake = re.sub('_+', '_', var_name_snake)
+            # 调用更新函数
+            f.write(f"        update_from_yaml_{var_name_snake}(base_path);\n")
+        f.write("    }\n\n")
+
+        # 添加 print 方法，增加 indent_level 参数
+        f.write("    void print(int indent_level = 0) const {\n")
+        f.write("        std::string indent(indent_level * 4, ' ');\n")
+        for full_class_name in generated_top_classes:
+            # 生成成员变量名
+            parts = full_class_name.split("::")
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]  # 移除最后的类名
+            var_name_with_ns = "_".join(parts_without_class)  # 保留大写字母
+            f.write(f"        std::cout << indent << \"{var_name_with_ns}:\" << std::endl;\n")
+            f.write(f"        {{\n")
+            f.write(f"            std::shared_lock<std::shared_mutex> lock(m_{var_name_with_ns});\n")
+            f.write(f"            {var_name_with_ns}.print(indent_level + 1);\n")
+            f.write(f"        }}\n\n")
+        f.write("    }\n\n")
+
+        # 添加 getter 方法
+        for full_class_name in generated_top_classes:
+            # 处理命名空间和变量名
+            parts = full_class_name.split("::")
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]  # 移除类名
+            var_name_with_ns = "_".join(parts_without_class)  # 保留大写字母
+
+            # 生成 getter 方法名
+            getter_method_name = 'get_' + var_name_with_ns
+            # 生成 getter 方法
+            f.write(f"    {full_class_name} {getter_method_name}() const {{\n")
+            f.write(f"        std::shared_lock<std::shared_mutex> lock(m_{var_name_with_ns});\n")
+            f.write(f"        return {var_name_with_ns};\n")
+            f.write("    }\n\n")
+
+        # 添加私有成员变量和函数
+        f.write("private:\n")
+        for full_class_name in generated_top_classes:
+            # 生成成员变量名和对应的函数名
+            parts = full_class_name.split("::")
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
+            class_name = parts[-1]
+            var_name_with_ns = "_".join(parts_without_class)
+            # 将 var_name_with_ns 转换为 snake_case，确保没有连续下划线
+            function_name_snake = camel_to_snake(var_name_with_ns)
+            function_name_snake = re.sub('_+', '_', function_name_snake)
+
+            # 添加私有成员变量
+            f.write(f"    {full_class_name} {var_name_with_ns};\n")
+            f.write(f"    mutable std::shared_mutex m_{var_name_with_ns};\n\n")
+
+            # 构建文件路径
+            dir_parts = parts_without_class  # 目录路径去掉最后的类名
+            yaml_class_name = class_name  # 最后的类名为 YAML 文件名
+
             # 将命名空间部分转换为 snake_case
             dir_parts_snake = [camel_to_snake(part) for part in dir_parts]
-            
+
+            # 去掉最后一层目录
+            if dir_parts_snake:
+                dir_parts_snake = dir_parts_snake[:-1]
+
             # YAML 文件名为最后一个类名转换为 snake_case
             yaml_file_name = camel_to_snake(yaml_class_name)
-            
+            # 去除连续的下划线
+            yaml_file_name = re.sub('_+', '_', yaml_file_name)
+
             # 构建目录路径，确保移除了最后一层目录
             if dir_parts_snake:
                 dir_path = "/".join(dir_parts_snake)
                 yaml_path = f"base_path + \"/{dir_path}/{yaml_file_name}.yaml\""
             else:
                 yaml_path = f"base_path + \"/{yaml_file_name}.yaml\""
-            
-            # 生成成员变量名，将 '::' 替换为 '_', 移除类名
-            var_name = create_variable_name(full_class_name)
-            
-            # 生成注释
-            comment_class_name = full_class_name
-            f.write(f"        // 更新 {comment_class_name}\n")
-            f.write(f"        node = YAML::LoadFile({yaml_path});\n")
-            f.write(f"        {var_name}.update_from_yaml(node);\n\n")
-        f.write("    }\n\n")
 
-        # 添加 getter methods
-        for full_class_name in generated_top_classes:
-            # 生成成员变量名，将 '::' 替换为 '_', 移除类名
-            var_name = create_variable_name(full_class_name)
-            # 生成 getter 方法名，去除末尾的下划线并转换为驼峰命名
-            getter_method_name = var_name.rstrip('_')
-            getter_method_name = ''.join(word.capitalize() for word in getter_method_name.split('_'))
-            # 生成 getter 方法
-            f.write(f"    const {full_class_name}& get_{var_name}() const {{\n")
-            f.write(f"        return {var_name};\n")
+            # 添加私有的 update_from_yaml 函数
+            f.write(f"    void update_from_yaml_{function_name_snake}(const std::string& base_path) {{\n")
+            f.write("        YAML::Node auto_yaml_node;\n")
+            f.write(f"        // 更新 {full_class_name}\n")
+            f.write(f"        auto_yaml_node = YAML::LoadFile({yaml_path});\n")
+            f.write(f"        {{\n")
+            f.write(f"            std::unique_lock<std::shared_mutex> lock(m_{var_name_with_ns});\n")
+            f.write(f"            {var_name_with_ns}.update_from_yaml(auto_yaml_node);\n")
+            f.write(f"        }}\n")
             f.write("    }\n\n")
-
-        # 添加 private 访问权限
-        f.write("private:\n")
-        for full_class_name in generated_top_classes:
-            # 生成成员变量名，将 '::' 替换为 '_', 移除类名
-            var_name = create_variable_name(full_class_name)
-            f.write(f"    {full_class_name} {var_name};\n")
         f.write("};\n\n")
-    print("已生成 ConfigCollect 类，并添加了成员变量的访问接口。")
+    print("已生成 ConfigCollect 类，增加了 update_from_yaml_all 函数，确保调用时的字符串中不会出现连续的下划线。")
 
 
 def main(input_path):
     # 清空输出文件并写入头文件内容
     with open("generated_classes.hpp", "w") as f:
-        f.write("#pragma once\n#include <string>\n#include <vector>\n#include <yaml-cpp/yaml.h>\n\nnamespace openrobot::ocm {\n")
+        f.write("#pragma once\n#include <string>\n#include <vector>\n#include <iostream>\n#include <yaml-cpp/yaml.h>\n#include <shared_mutex>\n#include <mutex>\n\nnamespace openrobot::ocm {\n")
 
     # 遍历输入路径
     for root, dirs, files in os.walk(input_path):

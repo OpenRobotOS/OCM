@@ -15,9 +15,9 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
-#include <memory>
+#include <vector>
 
-namespace raise_ctrl::rt {
+namespace openrobot::ocm {
 
 inline int lock_memory() {
   if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
@@ -108,4 +108,4 @@ inline int lock_and_prefault_dynamic(size_t process_max_dynamic_memory) {
   return 0;
 }
 
-}  // namespace raise_ctrl::rt
+}  // namespace openrobot::ocm
