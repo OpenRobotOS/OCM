@@ -3,18 +3,18 @@
 
 class Task : public openrobot::ocm::TaskBase {
  public:
-  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::EXTERNAL_TIMER, "openrobot_task") {}
+  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::EXTERNAL_TIMER, 0.0, "openrobot_task") {}
   void Run() override { std::cout << std::format("[openrobot_task]{}", this->GetLoopDuration()) << std::endl; }
 };
 
 class TaskTimer : public openrobot::ocm::TaskBase {
  public:
   TaskTimer()
-      : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TaskType::INTERNAL_TIMER),
+      : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TaskType::INTERNAL_TIMER, 0.0),
         sem_("OPENROBOT_OCM_SEM_TIMING_GENERATOR", 0),
         shm_("OPENROBOT_OCM_SHM_TIMING_GENERATOR_DT", sizeof(uint8_t)) {
     shm_.Lock();
-    *shm_.Get() = 1;
+    *shm_.Get() = 1;  // ms
     shm_.UnLock();
   }
   void Run() override { sem_.IncrementWhenZero(); }

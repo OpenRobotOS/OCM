@@ -14,8 +14,8 @@ class NodeBase {
   virtual void Init() = 0;
   virtual void Run() = 0;
   virtual void Output() = 0;
-  virtual bool EnterCheck() = 0;
-  virtual bool ExitCheck() = 0;
+  virtual bool TryEnter() = 0;
+  virtual bool TryExit() = 0;
   NodeState GetState() const { return state_.load(); }
 
  private:

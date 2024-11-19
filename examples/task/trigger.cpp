@@ -4,7 +4,7 @@
 
 class Task : public openrobot::ocm::TaskBase {
  public:
-  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::TRIGGER, "openrobot_task") {}
+  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::TRIGGER, 0.0, "openrobot_task") {}
   void Run() override { std::cout << std::format("[openrobot_task]{}", this->GetLoopDuration()) << std::endl; }
 };
 

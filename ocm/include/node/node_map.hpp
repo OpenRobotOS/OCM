@@ -6,6 +6,7 @@
 #include "node/node.hpp"
 
 namespace openrobot::ocm {
+
 class NodeMap final {
  public:
   NodeMap() = default;
@@ -17,7 +18,7 @@ class NodeMap final {
     }
     node_map_[node_name] = node_ptr;
   }
-  std::shared_ptr<NodeBase> GetNodePtr(const std::string& key) {
+  const std::shared_ptr<NodeBase>& GetNodePtr(const std::string& key) {
     if (node_map_.find(key) == node_map_.end()) {
       throw std::runtime_error(std::format("[NodeMap] node {} not found!", key));
     }

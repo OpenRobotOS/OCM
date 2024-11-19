@@ -2,6 +2,7 @@
 
 #include <sys/timerfd.h>
 #include <atomic>
+#include <cstdint>
 #include <semaphore>
 #include <thread>
 #include "logger/logger.hpp"
@@ -9,6 +10,8 @@
 #include "task/timer.hpp"
 
 namespace openrobot::ocm {
+
+enum class TaskState : uint8_t { INIT = 0, RUNNING, STANDBY };
 enum class TaskType : uint8_t {
   INTERNAL_TIMER = 0,
   EXTERNAL_TIMER,
@@ -68,7 +71,7 @@ class SleepTrigger : public SleepBase {
 
 class TaskBase {
  public:
-  TaskBase(const std::string& thread_name, TaskType type, const std::string& sem_name = "");
+  TaskBase(const std::string& thread_name, TaskType type, double sleep_duration, const std::string& sem_name = "");
   virtual ~TaskBase() = default;
 
   virtual void Run();
@@ -94,8 +97,12 @@ class TaskBase {
   std::atomic<double> run_duration_;
   std::atomic<double> loop_duration_;
   std::atomic_bool destroy_flag_;
+  std::atomic_bool run_flag_;
 
   std::unique_ptr<SleepBase> timer_;
+  double sleep_duration_;
+
+  std::atomic<TaskState> state_;
 
   openrobot::ocm::Logger& logger = openrobot::ocm::Logger::getInstance();
 };

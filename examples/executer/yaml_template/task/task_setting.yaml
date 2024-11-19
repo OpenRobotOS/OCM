@@ -1,0 +1,67 @@
+concurrent_group:
+  - group_name: "group1"
+    task_list:
+      - task_name: "NodeA"
+        node_list:
+          - node_name: "NodeA"
+            output_enable: True
+        task_setting:
+          timer_type: "external_timer"
+          period: 0.001
+        system_setting:
+          priority: 50
+          cpu_affinity: []
+        launch_setting:
+          pre_node: []
+          delay: 0
+  - group_name: "group2"
+    task_list:
+      - task_name: "NodeB"
+        node_list:
+          - node_name: "NodeB"
+            output_enable: True
+        task_setting:
+          timer_type: "external_timer"
+          period: 0.001
+        system_setting:
+          priority: 50
+          cpu_affinity: []
+        launch_setting:
+          pre_node: []
+          delay: 0
+
+exclusive_group:
+  - group_name: "group3"
+    task_list:
+      - task_name: "node_group1"
+        node_list:
+          - node_name: "NodeC"
+            output_enable: True
+          - node_name: "NodeD"
+            output_enable: True
+        task_setting:
+          timer_type: "external_timer"
+          period: 0.001
+        system_setting:
+          period: 0
+          priority: 50
+          cpu_affinity: []
+        launch_setting:
+          pre_node: []
+          delay: 0
+  - group_name: "group4"
+    task_list:
+      - task_name: "node_group2"
+        node_list:
+          - node_name: "NodeE"
+            output_enable: True
+        task_setting:
+          timer_type: "external_timer"
+          period: 0.001
+        system_setting:
+          period: 0
+          priority: 50
+          cpu_affinity: []
+        launch_setting:
+          pre_node: []
+          delay: 0

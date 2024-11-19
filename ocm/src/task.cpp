@@ -40,7 +40,7 @@ void SleepExternalTimer::SetPeriod(double period) {
 }
 double SleepExternalTimer::GetPeriod() const { return static_cast<double>(interval_time_ * dt_); }
 void SleepExternalTimer::Continue() {
-  interval_count_.store(0);
+  interval_time_.store(0);
   sem_.Increment();
 }
 
@@ -49,7 +49,8 @@ SleepTrigger::~SleepTrigger() { sem_.Destroy(); }
 void SleepTrigger::Sleep(double duration) { sem_.Decrement(); }
 void SleepTrigger::Continue() { sem_.Increment(); }
 
-TaskBase::TaskBase(const std::string& thread_name, TaskType type, const std::string& sem_name) : sem_(0) {
+TaskBase::TaskBase(const std::string& thread_name, TaskType type, double sleep_duration, const std::string& sem_name)
+    : sem_(0), sleep_duration_(sleep_duration) {
   if (type == TaskType::INTERNAL_TIMER) {
     timer_ = std::make_unique<SleepInternalTimer>();
   } else if (type == TaskType::EXTERNAL_TIMER) {
@@ -62,6 +63,7 @@ TaskBase::TaskBase(const std::string& thread_name, TaskType type, const std::str
   run_duration_.store(0.0);
   loop_duration_.store(0.0);
   destroy_flag_.store(false);
+  state_.store(TaskState::INIT);
 }
 
 void TaskBase::TaskCreate() {
@@ -71,13 +73,17 @@ void TaskBase::TaskCreate() {
 }
 
 void TaskBase::TaskStart() {
+  run_flag_.store(true);
   loop_run_.store(true);
   sem_.release();
+  state_.store(TaskState::RUNNING);
   logger.debug("[TASK] {} task thread has been started!", thread_name_);
 }
 
 void TaskBase::TaskStop() {
+  run_flag_.store(false);
   loop_run_.store(false);
+  timer_->Continue();
   logger.debug("[TASK] {} task thread has been stopped!", thread_name_);
 }
 void TaskBase::TaskDestroy() {
@@ -96,16 +102,18 @@ void TaskBase::TaskDestroy() {
 void TaskBase::Run() { logger.debug("[TASK] {} task thread is running!", thread_name_); }
 
 void TaskBase::Loop() {
+  std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int64_t>(sleep_duration_ * 1000)));
   openrobot::ocm::rt::set_thread_name(thread_name_);
   TimerOnce loop_timer;
   TimerOnce run_timer;
   while (thread_alive_.load()) {
+    state_.store(TaskState::STANDBY);
     sem_.acquire();
     while (loop_run_.load()) {
       timer_->Sleep(GetRunDuration());
       loop_duration_.store(loop_timer.getMs());
       run_timer.start();
-      if (!destroy_flag_.load()) {
+      if (!destroy_flag_.load() && run_flag_.load()) {
         Run();
       }
       run_duration_.store(run_timer.getMs());

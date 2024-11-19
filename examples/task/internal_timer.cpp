@@ -3,7 +3,7 @@
 
 class Task : public openrobot::ocm::TaskBase {
  public:
-  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::INTERNAL_TIMER) {}
+  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::INTERNAL_TIMER, 0.0) {}
   void Run() override { std::cout << std::format("[openrobot_task]{}", this->GetLoopDuration()) << std::endl; }
 };
 
