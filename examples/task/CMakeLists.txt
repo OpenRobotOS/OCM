@@ -15,7 +15,10 @@ endif()
 find_package(OCM REQUIRED)
 
 # 添加可执行文件
-add_executable(TaskTest test.cpp)
-
+add_executable(TriggerTest trigger.cpp)
+add_executable(InternalTimerTest internal_timer.cpp)
+add_executable(ExternalTimerTest external_timer.cpp)
 # 链接 OCM 库
-target_link_libraries(TaskTest PUBLIC OPENROBOT::OCM)
+target_link_libraries(TriggerTest PUBLIC OPENROBOT::OCM)
+target_link_libraries(InternalTimerTest PUBLIC OPENROBOT::OCM)
+target_link_libraries(ExternalTimerTest PUBLIC OPENROBOT::OCM)

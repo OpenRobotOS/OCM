@@ -88,6 +88,7 @@ class SharedMemorySemaphore {
 
   void Init(const std::string& sem_name, unsigned int value);
   void Increment();
+  void IncrementWhenZero();
   void Increment(unsigned int value);
   void Decrement();
   bool TryDecrement();

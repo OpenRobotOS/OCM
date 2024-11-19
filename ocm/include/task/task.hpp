@@ -2,6 +2,7 @@
 
 #include <sys/timerfd.h>
 #include <atomic>
+#include <semaphore>
 #include <thread>
 #include "logger/logger.hpp"
 #include "ocm/ocm.hpp"
@@ -14,11 +15,61 @@ enum class TaskType : uint8_t {
   TRIGGER,
 };
 
+class SleepBase {
+ public:
+  SleepBase() = default;
+  virtual ~SleepBase() = default;
+  virtual void Sleep(double duration = 0) = 0;
+  virtual void SetPeriod(double period) {}
+  virtual double GetPeriod() const { return 0; }
+  virtual void Continue() = 0;
+};
+
+class SleepInternalTimer : public SleepBase {
+ public:
+  SleepInternalTimer();
+  ~SleepInternalTimer() = default;
+  void Sleep(double duration = 0) override;
+  void SetPeriod(double period) override;
+  double GetPeriod() const override;
+  void Continue() override;
+
+ private:
+  TimerLoop timer_loop_;
+};
+
+class SleepExternalTimer : public SleepBase {
+ public:
+  SleepExternalTimer();
+  ~SleepExternalTimer();
+  void Sleep(double duration = 0) override;
+  void SetPeriod(double period) override;
+  double GetPeriod() const override;
+  void Continue() override;
+
+ private:
+  uint8_t dt_;
+  std::atomic_int interval_time_;
+  std::atomic_int interval_count_;
+  SharedMemorySemaphore sem_;
+  SharedMemoryData shm_;
+};
+
+class SleepTrigger : public SleepBase {
+ public:
+  SleepTrigger(const std::string& sem_name);
+  ~SleepTrigger();
+  void Sleep(double duration = 0) override;
+  void Continue() override;
+
+ private:
+  SharedMemorySemaphore sem_;
+};
+
 class TaskBase {
  public:
-  TaskBase(const std::string& sem_name, const std::string& thread_name, TaskType type);
-  TaskBase(const std::string& thread_name);
-  ~TaskBase() = default;
+  TaskBase(const std::string& thread_name, TaskType type, const std::string& sem_name = "");
+  virtual ~TaskBase() = default;
 
   virtual void Run();
   double GetRunDuration() const;
@@ -30,24 +81,22 @@ class TaskBase {
   void TaskDestroy();
 
  private:
-  void TaskCreate(std::string name);
+  void TaskCreate();
 
   void Loop();
 
   std::atomic_bool thread_alive_;
   std::atomic_bool loop_run_;
-
+  std::binary_semaphore sem_;
   int task_id_;
-  std::string name_;
+  std::string thread_name_;
   std::thread thread_;
   std::atomic<double> run_duration_;
   std::atomic<double> loop_duration_;
+  std::atomic_bool destroy_flag_;
 
-  TimerLoop timer_loop_;
+  std::unique_ptr<SleepBase> timer_;
 
-  TaskType type_;
-
-  SharedMemorySemaphore semaphore_;
   openrobot::ocm::Logger& logger = openrobot::ocm::Logger::getInstance();
 };
 }  // namespace openrobot::ocm

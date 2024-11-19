@@ -26,6 +26,18 @@ void SharedMemorySemaphore::Increment() {
     std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
   }
 }
+/*!
+ * 增加信号量的值。
+ */
+void SharedMemorySemaphore::IncrementWhenZero() {
+  int value;
+  sem_getvalue(sem_, &value);
+  if (value == 0) {
+    if (sem_post(sem_) != 0) {
+      std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
+    }
+  }
+}
 
 /*!
  * 增加信号量的值。
