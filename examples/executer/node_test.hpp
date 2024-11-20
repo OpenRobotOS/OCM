@@ -5,7 +5,13 @@ class NodeA : public openrobot::ocm::NodeBase {
  public:
   NodeA() : openrobot::ocm::NodeBase() {}
   void Init() override { std::cout << "NodeA Init" << std::endl; }
-  void Run() override { std::cout << "NodeA Run" << std::endl; }
+  void Execute() override {
+    std::cout << "NodeA Run" << std::endl;
+    iter_++;
+    if (iter_ == 10) {
+      SetState(openrobot::ocm::NodeState::RUNNING);
+    }
+  }
   void Output() override { std::cout << "NodeA Output" << std::endl; }
   bool TryEnter() override {
     std::cout << "NodeA TryEnter" << std::endl;
@@ -15,13 +21,15 @@ class NodeA : public openrobot::ocm::NodeBase {
     std::cout << "NodeA TryExit" << std::endl;
     return true;
   }
+
+  int iter_ = 0;
 };
 
 class NodeB : public openrobot::ocm::NodeBase {
  public:
   NodeB() : openrobot::ocm::NodeBase() {}
   void Init() override { std::cout << "NodeB Init" << std::endl; }
-  void Run() override { std::cout << "NodeB Run" << std::endl; }
+  void Execute() override { std::cout << "NodeB Run" << std::endl; }
   void Output() override { std::cout << "NodeB Output" << std::endl; }
   bool TryEnter() override {
     std::cout << "NodeB TryEnter" << std::endl;
@@ -37,7 +45,7 @@ class NodeC : public openrobot::ocm::NodeBase {
  public:
   NodeC() : openrobot::ocm::NodeBase() {}
   void Init() override { std::cout << "NodeC Init" << std::endl; }
-  void Run() override { std::cout << "NodeC Run" << std::endl; }
+  void Execute() override { std::cout << "NodeC Run" << std::endl; }
   void Output() override { std::cout << "NodeC Output" << std::endl; }
   bool TryEnter() override {
     std::cout << "NodeC TryEnter" << std::endl;
@@ -53,7 +61,7 @@ class NodeD : public openrobot::ocm::NodeBase {
  public:
   NodeD() : openrobot::ocm::NodeBase() {}
   void Init() override { std::cout << "NodeD Init" << std::endl; }
-  void Run() override { std::cout << "NodeD Run" << std::endl; }
+  void Execute() override { std::cout << "NodeD Run" << std::endl; }
   void Output() override { std::cout << "NodeD Output" << std::endl; }
   bool TryEnter() override {
     std::cout << "NodeD TryEnter" << std::endl;
@@ -69,7 +77,7 @@ class NodeE : public openrobot::ocm::NodeBase {
  public:
   NodeE() : openrobot::ocm::NodeBase() {}
   void Init() override { std::cout << "NodeE Init" << std::endl; }
-  void Run() override { std::cout << "NodeE Run" << std::endl; }
+  void Execute() override { std::cout << "NodeE Run" << std::endl; }
   void Output() override { std::cout << "NodeE Output" << std::endl; }
   bool TryEnter() override {
     std::cout << "NodeE TryEnter" << std::endl;

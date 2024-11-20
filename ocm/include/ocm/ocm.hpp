@@ -36,7 +36,8 @@ class AtomicPtr {
   ~AtomicPtr() = default;
 
   void operator=(const T& data) { data_ptr_.store(std::make_shared<const T>(data), std::memory_order_release); }
-  std::shared_ptr<const T> operator()() const { return data_ptr_.load(std::memory_order_acquire); }
+  std::shared_ptr<const T> GetPtr() const { return data_ptr_.load(std::memory_order_acquire); }
+  T GetValue() const { return *data_ptr_.load(std::memory_order_acquire); }
 
  private:
   std::atomic<std::shared_ptr<const T>> data_ptr_;
@@ -59,10 +60,10 @@ class RWLockData {
   void LockWrite() { mutex_.lock(); }
   bool TryLockWrite() { return mutex_.try_lock(); }
   void UnlockWrite() { mutex_.unlock(); }
-  T& Get() {
-    assert(data_ptr_);
-    return data_ptr_;
-  }
+
+  void operator=(const T& data) { data_ptr_ = std::make_shared<T>(data); }
+  std::shared_ptr<T> GetPtr() { return data_ptr_; }
+  T GetValue() { return *data_ptr_; }
 
  private:
   std::shared_ptr<T> data_ptr_;

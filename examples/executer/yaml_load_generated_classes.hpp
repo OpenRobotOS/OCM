@@ -102,14 +102,14 @@ class SystemSetting {
     if (auto_yaml_node["cpu_affinity"]) {
       cpu_affinity_.clear();
       for (auto& item : auto_yaml_node["cpu_affinity"]) {
-        cpu_affinity_.push_back(item.as<std::string>());
+        cpu_affinity_.push_back(item.as<double>());
       }
     }
   }
 
   double Priority() const { return priority_; }
 
-  std::vector<std::string> CpuAffinity() const { return cpu_affinity_; }
+  std::vector<double> CpuAffinity() const { return cpu_affinity_; }
 
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
@@ -124,7 +124,7 @@ class SystemSetting {
 
  private:
   double priority_;
-  std::vector<std::string> cpu_affinity_;
+  std::vector<double> cpu_affinity_;
 };
 
 }  // namespace auto_TaskSetting

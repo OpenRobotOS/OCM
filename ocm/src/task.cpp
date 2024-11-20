@@ -35,6 +35,9 @@ void SleepExternalTimer::Sleep(double duration) {
   interval_count_.store(0);
 }
 void SleepExternalTimer::SetPeriod(double period) {
+  if (dt_ < 1) {
+    dt_ = 1;
+  }
   interval_time_.store(static_cast<int>(period * 1000 / dt_));
   interval_count_.store(0);
 }
@@ -76,15 +79,14 @@ void TaskBase::TaskStart() {
   run_flag_.store(true);
   loop_run_.store(true);
   sem_.release();
-  state_.store(TaskState::RUNNING);
-  logger.debug("[TASK] {} task thread has been started!", thread_name_);
+  logger.debug("[TASK] {} task thread ready to run!", thread_name_);
 }
 
 void TaskBase::TaskStop() {
   run_flag_.store(false);
   loop_run_.store(false);
   timer_->Continue();
-  logger.debug("[TASK] {} task thread has been stopped!", thread_name_);
+  logger.debug("[TASK] {} task thread ready to stop!", thread_name_);
 }
 void TaskBase::TaskDestroy() {
   thread_alive_.store(false);
@@ -115,6 +117,7 @@ void TaskBase::Loop() {
       run_timer.start();
       if (!destroy_flag_.load() && run_flag_.load()) {
         Run();
+        state_.store(TaskState::RUNNING);
       }
       run_duration_.store(run_timer.getMs());
     }
@@ -128,4 +131,6 @@ double TaskBase::GetLoopDuration() const { return loop_duration_.load(); }
 void TaskBase::SetPeriod(double period) { timer_->SetPeriod(period); }
 
 std::string TaskBase::GetTaskName() const { return thread_name_; }
+
+TaskState TaskBase::GetState() const { return state_.load(); }
 }  // namespace openrobot::ocm

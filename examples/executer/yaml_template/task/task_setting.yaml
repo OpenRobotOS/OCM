@@ -1,3 +1,13 @@
+executer:
+  package_name: "executer"
+  task_setting:
+    timer_type: "EXTERNAL_TIMER"
+    period: 1
+  system_setting:
+    priority: 50
+    executer_cpu_affinity: [0]
+    idle_task_cpu_affinity: [0]
+
 concurrent_group:
   - group_name: "group1"
     task_list:
@@ -6,11 +16,11 @@ concurrent_group:
           - node_name: "NodeA"
             output_enable: True
         task_setting:
-          timer_type: "external_timer"
-          period: 0.001
+          timer_type: "EXTERNAL_TIMER"
+          period: 1
         system_setting:
           priority: 50
-          cpu_affinity: []
+          cpu_affinity: [0]
         launch_setting:
           pre_node: []
           delay: 0
@@ -21,13 +31,13 @@ concurrent_group:
           - node_name: "NodeB"
             output_enable: True
         task_setting:
-          timer_type: "external_timer"
-          period: 0.001
+          timer_type: "EXTERNAL_TIMER"
+          period: 1
         system_setting:
           priority: 50
-          cpu_affinity: []
+          cpu_affinity: [0]
         launch_setting:
-          pre_node: []
+          pre_node: ["NodeA"]
           delay: 0
 
 exclusive_group:
@@ -40,12 +50,12 @@ exclusive_group:
           - node_name: "NodeD"
             output_enable: True
         task_setting:
-          timer_type: "external_timer"
-          period: 0.001
+          timer_type: "EXTERNAL_TIMER"
+          period: 1
         system_setting:
           period: 0
           priority: 50
-          cpu_affinity: []
+          cpu_affinity: [0]
         launch_setting:
           pre_node: []
           delay: 0
@@ -56,12 +66,12 @@ exclusive_group:
           - node_name: "NodeE"
             output_enable: True
         task_setting:
-          timer_type: "external_timer"
+          timer_type: "EXTERNAL_TIMER"
           period: 0.001
         system_setting:
           period: 0
           priority: 50
-          cpu_affinity: []
+          cpu_affinity: [0]
         launch_setting:
           pre_node: []
           delay: 0

@@ -3,46 +3,13 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
+#include "common/struct_type.hpp"
 #include "node/node.hpp"
 #include "node/node_map.hpp"
 #include "ocm/ocm.hpp"
 #include "task/task.hpp"
 
 namespace openrobot::ocm {
-struct NodeConfig {
-  std::string node_name;
-  bool output_enable;
-};
-struct TaskSetting {
-  TaskType timer_type;
-  double period;
-};
-struct SystemSetting {
-  int priority;
-  std::vector<int> cpu_affinity;
-};
-struct LaunchSetting {
-  std::vector<std::string> pre_node;
-  double delay;
-};
-struct TaskConfig {
-  std::string task_name;
-  std::vector<NodeConfig> node_list;
-  TaskSetting task_setting;
-  SystemSetting system_setting;
-  LaunchSetting launch_setting;
-};
-struct GroupConfig {
-  std::string group_name;
-  std::vector<TaskConfig> task_list;
-};
-struct ExecuterConfig {
-  std::string package_name;
-  std::string sem_name;
-  double period;
-  std::unordered_map<std::string, GroupConfig> concurrent_group;
-  std::unordered_map<std::string, GroupConfig> exclusive_group;
-};
 
 class Task : public TaskBase {
  public:
@@ -57,12 +24,12 @@ class Task : public TaskBase {
   void Init() {
     for (auto& node : *node_list_) {
       node->Init();
-      node->Run();
+      node->RunOnce();
     }
   }
   void Run() override {
     for (auto& node : *node_list_) {
-      node->Run();
+      node->RunOnce();
     }
   }
 
@@ -81,6 +48,15 @@ class Executer : public TaskBase {
     SetPeriod(executer_config_.period);
     TaskStart();
     CreateTask();
+    current_group_ = "empty_init";
+    target_group_ = "empty_init";
+    desired_group_ = "group3";
+    is_transition_ = false;
+    all_node_exit_check_ = false;
+    all_node_enter_check_ = false;
+    task_stop_flag_ = true;
+    task_start_flag_ = true;
+    all_current_task_stop_ = false;
   }
   ~Executer() = default;
 
@@ -94,7 +70,6 @@ class Executer : public TaskBase {
       }
     }
     while (!task_set_wait_to_start.empty()) {
-      bool is_pre_loop = true;
       for (auto& task : task_list_wait_to_start) {
         if (!task.first) {
           bool is_pre_node_empty = task.second->GetTaskConfig().launch_setting.pre_node.empty();
@@ -107,20 +82,24 @@ class Executer : public TaskBase {
             task.second->Init();
             task.second->TaskStart();
             task_set_wait_to_start.erase(task.second->GetTaskName());
-            is_pre_loop = false;
             logger.info("Executer: Task {} start.", task.second->GetTaskName());
           }
         }
       }
-      if (is_pre_loop) {
-        throw std::runtime_error("The preceding node with a cycle exists.");
-      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
   }
 
- private:
-  void Run() override { std::cout << "Executer Run" << std::endl; }
+  AtomicPtr<std::string> desired_group_;
+  AtomicPtr<std::string> current_group_;
 
+ private:
+  void Run() override {
+    TransitionCheck();
+    if (is_transition_) {
+      Transition();
+    }
+  }
   void CreateTask() {
     for (auto& group_config : executer_config_.concurrent_group) {
       for (auto& task_config : group_config.second.task_list) {
@@ -132,6 +111,7 @@ class Executer : public TaskBase {
       }
     }
     for (auto& group_config : executer_config_.exclusive_group) {
+      exclusive_group_set_.insert(group_config.first);
       for (auto& task_config : group_config.second.task_list) {
         std::shared_ptr<std::vector<std::shared_ptr<NodeBase>>> node_list = std::make_shared<std::vector<std::shared_ptr<NodeBase>>>();
         for (auto& node_config : task_config.node_list) {
@@ -141,12 +121,125 @@ class Executer : public TaskBase {
       }
     }
   }
-  void Transition() {}
+
+  void TransitionCheck() {
+    if (!is_transition_) {
+      const auto& desired_group = desired_group_.GetValue();
+      const auto& current_group = current_group_.GetValue();
+      if (desired_group != current_group) {
+        if (exclusive_group_set_.find(desired_group) != exclusive_group_set_.end()) {
+          target_task_set_.clear();
+          current_task_set_.clear();
+          target_node_set_.clear();
+          current_node_set_.clear();
+          enter_node_set_.clear();
+          exit_node_set_.clear();
+          target_group_ = desired_group;
+          const auto& exclusive_group_config = executer_config_.exclusive_group;
+          for (auto& task_config : exclusive_group_config.at(target_group_).task_list) {
+            for (auto& task : exclusive_group_task_list_.at(task_config.task_name)) {
+              target_task_set_.insert(task);
+            }
+            for (auto& node : task_config.node_list) {
+              target_node_set_.insert(node.node_name);
+            }
+          }
+          if (current_group != "empty_init") {
+            for (auto& task_config : exclusive_group_config.at(current_group).task_list) {
+              for (auto& task : exclusive_group_task_list_.at(task_config.task_name)) {
+                current_task_set_.insert(task);
+              }
+              for (auto& node : task_config.node_list) {
+                current_node_set_.insert(node.node_name);
+              }
+            }
+          }
+          std::set_difference(current_node_set_.begin(), current_node_set_.end(), target_node_set_.begin(), target_node_set_.end(),
+                              std::inserter(exit_node_set_, exit_node_set_.begin()));
+
+          std::set_difference(target_node_set_.begin(), target_node_set_.end(), current_node_set_.begin(), current_node_set_.end(),
+                              std::inserter(enter_node_set_, enter_node_set_.begin()));
+          all_node_exit_check_ = false;
+          all_node_enter_check_ = false;
+          is_transition_ = true;
+          task_stop_flag_ = true;
+          task_start_flag_ = true;
+          all_current_task_stop_ = false;
+        } else {
+          logger.error("Executer: Target group {} is not an exclusive group.", desired_group);
+        }
+      }
+    }
+  }
+  void Transition() {
+    if (all_node_exit_check_ && all_node_enter_check_) {
+      if (task_stop_flag_) {
+        task_stop_flag_ = false;
+        for (auto& task : current_task_set_) {
+          task->TaskStop();
+        }
+      }
+      if (all_current_task_stop_) {
+        std::vector<std::pair<bool, std::shared_ptr<Task>>> task_list_wait_to_start;
+        std::set<std::string> task_set_wait_to_start;
+
+        for (auto& task_config : executer_config_.exclusive_group.at(target_group_).task_list) {
+          auto& task_vector = exclusive_group_task_list_.at(task_config.task_name);
+          for (auto& task : task_vector) {
+            task_list_wait_to_start.emplace_back(std::make_pair(false, task));
+            task_set_wait_to_start.insert(task->GetTaskName());
+          }
+        }
+        while (!task_set_wait_to_start.empty()) {
+          for (auto& task : task_list_wait_to_start) {
+            if (!task.first) {
+              bool is_pre_node_empty = task.second->GetTaskConfig().launch_setting.pre_node.empty();
+              const auto& pre_node_list = task.second->GetTaskConfig().launch_setting.pre_node;
+              bool is_pre_node_ready = std::all_of(pre_node_list.begin(), pre_node_list.end(), [this](const std::string& pre_node_name) {
+                return node_map_->GetNodePtr(pre_node_name)->GetState() == NodeState::RUNNING;
+              });
+              if (is_pre_node_empty || is_pre_node_ready) {
+                task.first = true;
+                task.second->Init();
+                task.second->TaskStart();
+                task_set_wait_to_start.erase(task.second->GetTaskName());
+                logger.info("Executer: Task {} start.", task.second->GetTaskName());
+              }
+            }
+          }
+        }
+        current_group_ = target_group_;
+        is_transition_ = false;
+      } else {
+        all_current_task_stop_ =
+            std::all_of(current_task_set_.begin(), current_task_set_.end(), [](const auto& task) { return task->GetState() == TaskState::STANDBY; });
+      }
+    } else {
+      all_node_exit_check_ =
+          std::all_of(exit_node_set_.begin(), exit_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->ExitCheck(); });
+      all_node_enter_check_ =
+          std::all_of(enter_node_set_.begin(), enter_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->EnterCheck(); });
+    }
+  }
   std::unordered_map<std::string, std::vector<std::shared_ptr<Task>>> concurrent_group_task_list_;
   std::unordered_map<std::string, std::vector<std::shared_ptr<Task>>> exclusive_group_task_list_;
+  std::set<std::string> exclusive_group_set_;
   std::shared_ptr<NodeMap> node_map_;
   ExecuterConfig executer_config_;
-  AtomicPtr<std::string> target_state_;
+
+  std::set<std::shared_ptr<Task>> target_task_set_;
+  std::set<std::shared_ptr<Task>> current_task_set_;
+  std::set<std::string> target_node_set_;
+  std::set<std::string> current_node_set_;
+  std::set<std::string> enter_node_set_;
+  std::set<std::string> exit_node_set_;
+  bool all_node_exit_check_;
+  bool all_node_enter_check_;
+  bool task_stop_flag_;
+  bool task_start_flag_;
+  bool all_current_task_stop_;
+  std::string target_group_;
+  bool is_transition_;
 
   openrobot::ocm::LogAnywhere& logger = openrobot::ocm::LogAnywhere::getInstance();
 };

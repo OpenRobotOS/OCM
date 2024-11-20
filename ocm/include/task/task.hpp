@@ -5,18 +5,12 @@
 #include <cstdint>
 #include <semaphore>
 #include <thread>
+#include "common/enum.hpp"
 #include "log_anywhere/log_anywhere.hpp"
 #include "ocm/ocm.hpp"
 #include "task/timer.hpp"
 
 namespace openrobot::ocm {
-
-enum class TaskState : uint8_t { INIT = 0, RUNNING, STANDBY };
-enum class TaskType : uint8_t {
-  INTERNAL_TIMER = 0,
-  EXTERNAL_TIMER,
-  TRIGGER,
-};
 
 class SleepBase {
  public:
@@ -79,6 +73,7 @@ class TaskBase {
   double GetLoopDuration() const;
   void SetPeriod(double period);
   std::string GetTaskName() const;
+  TaskState GetState() const;
   void TaskStart();
   void TaskStop();
   void TaskDestroy();
