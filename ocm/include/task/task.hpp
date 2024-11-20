@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <semaphore>
 #include <thread>
-#include "logger/logger.hpp"
+#include "log_anywhere/log_anywhere.hpp"
 #include "ocm/ocm.hpp"
 #include "task/timer.hpp"
 
@@ -78,7 +78,7 @@ class TaskBase {
   double GetRunDuration() const;
   double GetLoopDuration() const;
   void SetPeriod(double period);
-
+  std::string GetTaskName() const;
   void TaskStart();
   void TaskStop();
   void TaskDestroy();
@@ -104,6 +104,6 @@ class TaskBase {
 
   std::atomic<TaskState> state_;
 
-  openrobot::ocm::Logger& logger = openrobot::ocm::Logger::getInstance();
+  openrobot::ocm::LogAnywhere& logger = openrobot::ocm::LogAnywhere::getInstance();
 };
 }  // namespace openrobot::ocm

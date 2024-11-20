@@ -1,15 +1,15 @@
 #include "executer/executer.hpp"
 #include <memory>
-#include "generated_classes.hpp"
 #include "node/node_map.hpp"
 #include "node_test.hpp"
+#include "yaml_load_generated_classes.hpp"
 
 using namespace openrobot::ocm;
 
 int main() {
-  ConfigCollect config_collector;
-  config_collector.update_from_yaml_all("/home/lizhen/works/code/OpenRobot/OCM/examples/executer/yaml_template/");
-  config_collector.print();
+  ConfigCollect& config = ConfigCollect::getInstance();
+  config.update_from_yaml_all("/home/lizhen/works/code/OpenRobot/OCM/examples/executer/yaml_template/");
+  config.print();
 
   std::shared_ptr<NodeMap> node_map = std::make_shared<NodeMap>();
   node_map->AddNode("NodeA", std::make_shared<NodeA>());
@@ -39,6 +39,7 @@ int main() {
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
+  std::cout << "executer exit" << std::endl;
   executer.TaskDestroy();
   return 0;
 }

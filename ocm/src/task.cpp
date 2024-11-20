@@ -126,4 +126,6 @@ double TaskBase::GetRunDuration() const { return run_duration_.load(); }
 double TaskBase::GetLoopDuration() const { return loop_duration_.load(); }
 
 void TaskBase::SetPeriod(double period) { timer_->SetPeriod(period); }
+
+std::string TaskBase::GetTaskName() const { return thread_name_; }
 }  // namespace openrobot::ocm

@@ -396,15 +396,21 @@ class auto_TaskSetting {
 
 class ConfigCollect {
  public:
-  ConfigCollect() = default;
-  ~ConfigCollect() = default;
+  // 获取单例实例
+  static ConfigCollect& getInstance() {
+    static ConfigCollect instance;
+    return instance;
+  }
 
+  // 删除拷贝构造函数和赋值操作符
   ConfigCollect(const ConfigCollect&) = delete;
   ConfigCollect& operator=(const ConfigCollect&) = delete;
 
+  // 删除移动构造函数和赋值操作符
   ConfigCollect(ConfigCollect&&) = delete;
   ConfigCollect& operator=(ConfigCollect&&) = delete;
 
+  // 根据名称更新对应的配置
   void update_from_yaml(const std::string& name, const std::string& base_path) {
     if (name.empty()) {
       return;
@@ -420,8 +426,10 @@ class ConfigCollect {
     }
   }
 
+  // 更新所有配置
   void update_from_yaml_all(const std::string& base_path) { update_from_yaml_task_task_setting(base_path); }
 
+  // 打印所有配置
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
     std::cout << indent << "Task_TaskSetting:" << std::endl;
@@ -431,18 +439,23 @@ class ConfigCollect {
     }
   }
 
-  auto_Task::auto_TaskSetting::auto_TaskSetting get_Task_TaskSetting() const {
+  // 获取各个配置的实例
+  auto_Task::auto_TaskSetting::auto_TaskSetting& get_Task_TaskSetting() {
     std::shared_lock<std::shared_mutex> lock(m_Task_TaskSetting);
     return Task_TaskSetting;
   }
 
  private:
+  // 私有构造函数，防止外部实例化
+  ConfigCollect() = default;
+
   auto_Task::auto_TaskSetting::auto_TaskSetting Task_TaskSetting;
   mutable std::shared_mutex m_Task_TaskSetting;
 
+  // 更新 auto_Task::auto_TaskSetting::auto_TaskSetting 配置
   void update_from_yaml_task_task_setting(const std::string& base_path) {
     YAML::Node auto_yaml_node;
-    // 更新 auto_Task::auto_TaskSetting::auto_TaskSetting
+    // 加载 YAML 文件
     auto_yaml_node = YAML::LoadFile(base_path + "/task/task_setting.yaml");
     {
       std::unique_lock<std::shared_mutex> lock(m_Task_TaskSetting);

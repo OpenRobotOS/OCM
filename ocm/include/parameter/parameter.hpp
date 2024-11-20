@@ -1,7 +1,6 @@
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
 #include <unordered_map>
-#include "logger/logger.hpp"
 
 namespace openrobot::ocm {
 class ParameterHandler {
@@ -16,13 +15,13 @@ class ParameterHandler {
     return instance;
   }
 
-  void doSomething() { std::cout << "ParameterHandler instance is doing something.\n"; }
+  void doSomething() {}
 
  private:
   // 私有构造函数，防止外部实例化
-  ParameterHandler() { std::cout << "ParameterHandler instance created.\n"; }
+  ParameterHandler() {}
 
-  ~ParameterHandler() { std::cout << "ParameterHandler instance destroyed.\n"; }
+  ~ParameterHandler() {}
 
   void find_yaml_files(const std::filesystem::path& dir, std::unordered_map<std::string, std::unordered_map<std::string, std::string>>& file_map) {
     // 遍历文件夹中的内容
@@ -38,7 +37,5 @@ class ParameterHandler {
       }
     }
   }
-
-  openrobot::ocm::Logger& logger = openrobot::ocm::Logger::getInstance();
 };
 }  // namespace openrobot::ocm
