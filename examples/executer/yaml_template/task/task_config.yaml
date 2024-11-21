@@ -1,16 +1,11 @@
-executer:
-  package_name: "executer"
-  task_setting:
-    timer_type: "EXTERNAL_TIMER"
+executer_setting:
+  timer_setting:
+    timer_type: "INTERNAL_TIMER"
     period: 1
   system_setting:
     priority: 50
-    executer_cpu_affinity:
-      - 0
-      - 1
-    idle_task_cpu_affinity:
-      - 0
-      - 1
+    executer_cpu_affinity: [0]
+    idle_task_cpu_affinity: [0]
 
 #--------------------------------------
 task_list:
@@ -21,8 +16,8 @@ task_list:
       node_list:
         - node_name: "NodeA"
           output_enable: True
-      task_setting:
-        timer_type: "EXTERNAL_TIMER"
+      timer_setting:
+        timer_type: "INTERNAL_TIMER"
         period: 1
       system_setting:
         priority: 50
@@ -30,3 +25,60 @@ task_list:
       launch_setting:
         pre_node: []
         delay: 0
+    # --------------------------------------
+    - task_name: "NodeB"
+      node_list:
+        - node_name: "NodeB"
+          output_enable: True
+      timer_setting:
+        timer_type: "INTERNAL_TIMER"
+        period: 1
+      system_setting:
+        priority: 50
+        cpu_affinity: [0]
+      launch_setting:
+        pre_node: ["NodeA"]
+        delay: 0
+
+  #--------------------------------------
+  standby_group:
+    # --------------------------------------
+    - task_name: "TASK1"
+      node_list:
+        - node_name: "NodeC"
+          output_enable: True
+        - node_name: "NodeD"
+          output_enable: True
+      timer_setting:
+        timer_type: "EXTERNAL_TIMER"
+        period: 1
+      system_setting:
+        period: 0
+        priority: 50
+        cpu_affinity: [0]
+
+    # --------------------------------------
+    - task_name: "TASK2"
+      node_list:
+        - node_name: "NodeE"
+          output_enable: True
+      timer_setting:
+        timer_type: "EXTERNAL_TIMER"
+        period: 1
+      system_setting:
+        period: 0
+        priority: 50
+        cpu_affinity: [0]
+
+exclusive_task_group:
+  #--------------------------------------
+  - group_name: "resident_group"
+    task_list:
+      # --------------------------------------
+      - task_name: "TASK1"
+        force_init_node: []
+        pre_node: []
+      # --------------------------------------
+      - task_name: "TASK2"
+        force_init_node: []
+        pre_node: []

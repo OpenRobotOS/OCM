@@ -9,34 +9,57 @@ struct NodeConfig {
   std::string node_name;
   bool output_enable;
 };
-struct TaskSetting {
-  TaskType timer_type;
+struct TimerSetting {
+  TimerType timer_type;
   double period;
 };
 struct SystemSetting {
   double priority;
   std::vector<double> cpu_affinity;
 };
+struct ExecuterSystemSetting {
+  double priority;
+  std::vector<double> executer_cpu_affinity;
+  std::vector<double> idle_task_cpu_affinity;
+};
 struct LaunchSetting {
   std::vector<std::string> pre_node;
   double delay;
 };
-struct TaskConfig {
+struct TaskSetting {
   std::string task_name;
   std::vector<NodeConfig> node_list;
-  TaskSetting task_setting;
+  TimerSetting timer_setting;
   SystemSetting system_setting;
   LaunchSetting launch_setting;
 };
-struct GroupConfig {
-  std::string group_name;
-  std::vector<TaskConfig> task_list;
+
+struct GroupTaskSetting {
+  std::string task_name;
+  std::vector<std::string> force_init_node;
+  std::vector<std::string> pre_node;
 };
-struct ExecuterConfig {
+
+struct GroupSetting {
+  std::string group_name;
+  std::unordered_map<std::string, GroupTaskSetting> task_list;
+};
+
+struct TaskList {
+  std::unordered_map<std::string, TaskSetting> resident_group;
+  std::unordered_map<std::string, TaskSetting> standby_group;
+};
+
+struct ExecuterSetting {
   std::string package_name;
   std::string sem_name;
-  double period;
-  std::unordered_map<std::string, GroupConfig> concurrent_group;
-  std::unordered_map<std::string, GroupConfig> exclusive_group;
+  TimerSetting timer_setting;
+  ExecuterSystemSetting system_setting;
+};
+
+struct ExecuterConfig {
+  ExecuterSetting executer_setting;
+  TaskList task_list;
+  std::unordered_map<std::string, GroupSetting> exclusive_task_group;
 };
 }  // namespace openrobot::ocm

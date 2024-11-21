@@ -52,13 +52,13 @@ SleepTrigger::~SleepTrigger() { sem_.Destroy(); }
 void SleepTrigger::Sleep(double duration) { sem_.Decrement(); }
 void SleepTrigger::Continue() { sem_.Increment(); }
 
-TaskBase::TaskBase(const std::string& thread_name, TaskType type, double sleep_duration, const std::string& sem_name)
+TaskBase::TaskBase(const std::string& thread_name, TimerType type, double sleep_duration, const std::string& sem_name)
     : sem_(0), sleep_duration_(sleep_duration) {
-  if (type == TaskType::INTERNAL_TIMER) {
+  if (type == TimerType::INTERNAL_TIMER) {
     timer_ = std::make_unique<SleepInternalTimer>();
-  } else if (type == TaskType::EXTERNAL_TIMER) {
+  } else if (type == TimerType::EXTERNAL_TIMER) {
     timer_ = std::make_unique<SleepExternalTimer>();
-  } else if (type == TaskType::TRIGGER) {
+  } else if (type == TimerType::TRIGGER) {
     timer_ = std::make_unique<SleepTrigger>(sem_name);
   }
   thread_name_ = thread_name;

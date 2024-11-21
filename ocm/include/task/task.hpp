@@ -65,7 +65,7 @@ class SleepTrigger : public SleepBase {
 
 class TaskBase {
  public:
-  TaskBase(const std::string& thread_name, TaskType type, double sleep_duration, const std::string& sem_name = "");
+  TaskBase(const std::string& thread_name, TimerType type, double sleep_duration, const std::string& sem_name = "");
   virtual ~TaskBase() = default;
 
   virtual void Run();

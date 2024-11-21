@@ -1,17 +1,18 @@
 #include "executer/executer.hpp"
+#include <common/struct_type.hpp>
 #include <memory>
 #include "common/enum.hpp"
 #include "log_anywhere/log_anywhere.hpp"
 #include "node/node_map.hpp"
 #include "node_test.hpp"
-#include "yaml_load_generated_classes.hpp"
+#include "yaml_template/task/yaml_load_generated_classes.hpp"
 
 using namespace openrobot::ocm;
 
 class TaskTimer : public openrobot::ocm::TaskBase {
  public:
   TaskTimer()
-      : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TaskType::INTERNAL_TIMER, 0.0),
+      : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0),
         sem_("OPENROBOT_OCM_SEM_TIMING_GENERATOR", 0),
         shm_("OPENROBOT_OCM_SHM_TIMING_GENERATOR_DT", sizeof(uint8_t)) {
     shm_.Lock();
@@ -37,7 +38,7 @@ int main() {
   timer_task.SetPeriod(0.001);
   timer_task.TaskStart();
   ConfigCollect& config = ConfigCollect::getInstance();
-  config.update_from_yaml_all("/home/lizhen/works/code/OpenRobot/OCM/examples/executer/yaml_template/");
+  config.update_from_yaml_all("/home/lizhen/works/code/OpenRobot/OCM/examples/executer/yaml_template/task");
   // config.print();
 
   std::shared_ptr<NodeMap> node_map = std::make_shared<NodeMap>();
@@ -47,59 +48,67 @@ int main() {
   node_map->AddNode("NodeD", std::make_shared<NodeD>());
   node_map->AddNode("NodeE", std::make_shared<NodeE>());
   ExecuterConfig executer_config;
-  const auto& concurrent_group_config = config.get_Task_TaskSetting().ConcurrentGroup();
-  const auto& exclusive_group_config = config.get_Task_TaskSetting().ExclusiveGroup();
-  executer_config.package_name = "openrobot_executer";
-  executer_config.sem_name = "openrobot_executer_sem";
-  executer_config.period = 1;
-  for (const auto& concurrent_group : concurrent_group_config) {
-    GroupConfig group_config;
-    group_config.group_name = concurrent_group.GroupName();
-    for (const auto& task : concurrent_group.TaskList()) {
-      TaskConfig task_config;
-      task_config.task_name = task.TaskName();
-      for (const auto& node : task.NodeList()) {
-        NodeConfig node_config;
-        node_config.node_name = node.NodeName();
-        node_config.output_enable = node.OutputEnable();
-        task_config.node_list.push_back(node_config);
-      }
-      task_config.task_setting.timer_type = task_type_map.at(task.TaskSetting().TimerType());
-      task_config.task_setting.period = task.TaskSetting().Period();
-      task_config.system_setting.priority = task.SystemSetting().Priority();
-      task_config.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
-      task_config.launch_setting.pre_node = task.LaunchSetting().PreNode();
-      task_config.launch_setting.delay = task.LaunchSetting().Delay();
-      group_config.task_list.push_back(task_config);
+
+  const auto& executer_setting = config.get_task_config().ExecuterSetting();
+  const auto& task_list = config.get_task_config().TaskList();
+  const auto& exclusive_task_group = config.get_task_config().ExclusiveTaskGroup();
+
+  executer_config.executer_setting.package_name = "executer_test";
+  executer_config.executer_setting.sem_name = "OPENROBOT_OCM_SEM_TIMING_GENERATOR";
+  executer_config.executer_setting.timer_setting.timer_type = timer_type_map.at(executer_setting.TimerSetting().TimerType());
+  executer_config.executer_setting.timer_setting.period = executer_setting.TimerSetting().Period();
+  executer_config.executer_setting.system_setting.priority = executer_setting.SystemSetting().Priority();
+  executer_config.executer_setting.system_setting.executer_cpu_affinity = executer_setting.SystemSetting().ExecuterCpuAffinity();
+  executer_config.executer_setting.system_setting.idle_task_cpu_affinity = executer_setting.SystemSetting().IdleTaskCpuAffinity();
+
+  for (const auto& task : task_list.ResidentGroup()) {
+    TaskSetting task_setting;
+    task_setting.task_name = task.TaskName();
+    task_setting.timer_setting.timer_type = timer_type_map.at(task.TimerSetting().TimerType());
+    task_setting.timer_setting.period = task.TimerSetting().Period();
+    task_setting.system_setting.priority = task.SystemSetting().Priority();
+    task_setting.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
+    task_setting.launch_setting.pre_node = task.LaunchSetting().PreNode();
+    task_setting.launch_setting.delay = task.LaunchSetting().Delay();
+    for (const auto& node : task.NodeList()) {
+      NodeConfig node_config;
+      node_config.node_name = node.NodeName();
+      node_config.output_enable = node.OutputEnable();
+      task_setting.node_list.push_back(node_config);
     }
-    executer_config.concurrent_group[group_config.group_name] = group_config;
+    executer_config.task_list.resident_group[task.TaskName()] = task_setting;
   }
-  for (const auto& exclusive_group : exclusive_group_config) {
-    GroupConfig group_config;
-    group_config.group_name = exclusive_group.GroupName();
-    for (const auto& task : exclusive_group.TaskList()) {
-      TaskConfig task_config;
-      task_config.task_name = task.TaskName();
-      for (const auto& node : task.NodeList()) {
-        NodeConfig node_config;
-        node_config.node_name = node.NodeName();
-        node_config.output_enable = node.OutputEnable();
-        task_config.node_list.push_back(node_config);
-      }
-      task_config.task_setting.timer_type = task_type_map.at(task.TaskSetting().TimerType());
-      task_config.task_setting.period = task.TaskSetting().Period();
-      task_config.system_setting.priority = task.SystemSetting().Priority();
-      task_config.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
-      task_config.launch_setting.pre_node = task.LaunchSetting().PreNode();
-      task_config.launch_setting.delay = task.LaunchSetting().Delay();
-      group_config.task_list.push_back(task_config);
+
+  for (const auto& task : task_list.StandbyGroup()) {
+    TaskSetting task_setting;
+    task_setting.task_name = task.TaskName();
+    task_setting.timer_setting.timer_type = timer_type_map.at(task.TimerSetting().TimerType());
+    task_setting.timer_setting.period = task.TimerSetting().Period();
+    task_setting.system_setting.priority = task.SystemSetting().Priority();
+    task_setting.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
+    for (const auto& node : task.NodeList()) {
+      NodeConfig node_config;
+      node_config.node_name = node.NodeName();
+      node_config.output_enable = node.OutputEnable();
+      task_setting.node_list.push_back(node_config);
     }
-    executer_config.exclusive_group[group_config.group_name] = group_config;
+    executer_config.task_list.standby_group[task.TaskName()] = task_setting;
+  }
+
+  for (const auto& group : exclusive_task_group) {
+    GroupSetting group_setting;
+    group_setting.group_name = group.GroupName();
+    for (const auto& task : group.TaskList()) {
+      GroupTaskSetting group_task_setting;
+      group_task_setting.task_name = task.TaskName();
+      group_task_setting.force_init_node = task.ForceInitNode();
+      group_task_setting.pre_node = task.PreNode();
+      group_setting.task_list[task.TaskName()] = group_task_setting;
+    }
   }
 
   Executer executer(executer_config, node_map);
   executer.Init();
-
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
