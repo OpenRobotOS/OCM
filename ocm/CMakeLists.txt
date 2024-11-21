@@ -13,19 +13,43 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
       "Release"
       CACHE STRING "Choose Release or Debug" FORCE)
 endif()
+
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  message(
+    STATUS
+      "CMAKE_INSTALL_PREFIX is using the default value, changing to '/opt/openrobotlib/ocm'"
+  )
   set(CMAKE_INSTALL_PREFIX
-      "/opt/openrobotlib"
+      "/opt/openrobotlib/ocm"
       CACHE PATH "Default install path" FORCE)
+else()
+  message(STATUS "CMAKE_INSTALL_PREFIX already set to: ${CMAKE_INSTALL_PREFIX}")
 endif()
+
+# 输出最终安装路径
+message(STATUS "Final CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
+if(NOT DEFINED CMAKE_PREFIX_PATH OR CMAKE_PREFIX_PATH STREQUAL "")
+  set(CMAKE_PREFIX_PATH
+      "/opt/openrobotlib/third_party"
+      CACHE PATH "Default prefix path" FORCE)
+  message(
+    STATUS
+      "CMAKE_PREFIX_PATH is not set, defaulting to '/opt/openrobotlib/third_party'"
+  )
+else()
+  message(STATUS "CMAKE_PREFIX_PATH already set to: ${CMAKE_PREFIX_PATH}")
+endif()
+
+# 输出最终前缀路径
+message(STATUS "Final CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(lcm REQUIRED HINTS "/opt/openrobotlib/lib/lcm/cmake")
-find_package(spdlog REQUIRED HINTS "/opt/openrobotlib/lib/cmake/spdlog")
-find_package(yaml-cpp REQUIRED HINTS "/opt/openrobotlib/lib/cmake/yaml-cpp")
+find_package(lcm REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 add_compile_options(-no-pie -O3 -march=native)
 

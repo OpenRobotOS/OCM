@@ -32,8 +32,8 @@ def determine_type(name, value, namespaces, output_path):
     elif isinstance(value, dict):
         class_name = capitalize(name)
         generate_class(class_name, value, namespaces, output_path)
-        # 返回包含新增命名空间的全限定类名
-        full_class_name = '::'.join(namespaces + [f"auto_{class_name}", class_name])
+        # 返回全限定类名
+        full_class_name = '::'.join(namespaces + [class_name])
         return full_class_name
     elif value is None:
         return "std::string"  # 默认处理Null为string
@@ -94,9 +94,7 @@ def create_variable_name(full_class_name):
 def generate_class(class_name, data, namespaces, output_path):
     """生成C++类代码并写入文件"""
     # 构建全限定类名以避免命名冲突
-    # 在当前命名空间中添加 'auto_ClassName' 命名空间
-    auto_namespace = f"auto_{class_name}"
-    full_class_name = '::'.join(namespaces + [auto_namespace, class_name])
+    full_class_name = '::'.join(namespaces + [class_name])
     if full_class_name in generated_classes:
         return  # 已生成，跳过
 
@@ -107,18 +105,18 @@ def generate_class(class_name, data, namespaces, output_path):
 
     for key, value in data.items():
         field_name = sanitize_field_name(key)
-        field_type = determine_type(key, value, namespaces + [auto_namespace], output_path)
+        field_type = determine_type(key, value, namespaces, output_path)
         member_vars.append(f"        {field_type} {field_name};")
 
-        # 生成 getter 方法
+        # Generate getter method
         getter_name = capitalize(key)
-        if field_type in ["bool", "double", "int", "std::string"] or field_type.startswith("std::vector<"):
-            # 值类型返回
+        if field_type in ["bool", "int", "double", "std::string"] or field_type.startswith("std::vector<"):
+            # Return by value (copy)
             getter_methods.append(f"        {field_type} {getter_name}() const {{")
             getter_methods.append(f"            return {field_name};")
             getter_methods.append(f"        }}\n")
         else:
-            # 自定义类型返回常量引用
+            # For custom types, return const reference
             getter_methods.append(f"        const {field_type}& {getter_name}() const {{")
             getter_methods.append(f"            return {field_name};")
             getter_methods.append(f"        }}\n")
@@ -144,7 +142,7 @@ def generate_class(class_name, data, namespaces, output_path):
     class_code.append("    void update_from_yaml(const YAML::Node& auto_yaml_node) {")
     for key, value in data.items():
         field_name = sanitize_field_name(key)
-        field_type = determine_type(key, value, namespaces + [auto_namespace], output_path)
+        field_type = determine_type(key, value, namespaces, output_path)
 
         if field_type.startswith("std::vector<"):
             elem_type = field_type[len("std::vector<"):-1]
@@ -178,7 +176,7 @@ def generate_class(class_name, data, namespaces, output_path):
     class_code.append(f"        std::cout << indent << \"{class_name}:\" << std::endl;")
     for key, value in data.items():
         field_name = sanitize_field_name(key)
-        field_type = determine_type(key, value, namespaces + [auto_namespace], output_path)
+        field_type = determine_type(key, value, namespaces, output_path)
         if field_type in ["bool", "int", "double", "std::string"]:
             class_code.append(f"        std::cout << indent << \"    {field_name}: \" << {field_name} << std::endl;")
         elif field_type.startswith("std::vector<"):
@@ -207,29 +205,21 @@ def generate_class(class_name, data, namespaces, output_path):
     for key, value in data.items():
         if isinstance(value, dict):
             sub_class_name = capitalize(key)
-            # 添加 'auto_' 前缀并基于键名构建命名空间
-            new_namespaces = namespaces + [auto_namespace]
-            generate_class(sub_class_name, value, new_namespaces, output_path)
+            generate_class(sub_class_name, value, namespaces, output_path)
         elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict):
             # 假设列表名为复数形式，类名为单数
             sub_class_name = capitalize(key.rstrip('s'))
-            # 添加 'auto_' 前缀并基于键名构建命名空间
-            new_namespaces = namespaces + [auto_namespace]
-            generate_class(sub_class_name, value[0], new_namespaces, output_path)
+            generate_class(sub_class_name, value[0], namespaces, output_path)
 
     # 将生成的类写入文件，带有命名空间
     with open(os.path.join(output_path, "yaml_load_generated_classes.hpp"), "a") as f:
         # 写入命名空间开始
         for ns in namespaces:
             f.write(f"namespace {ns} {{\n")
-        # 写入 'auto_ClassName' 命名空间开始
-        f.write(f"namespace {auto_namespace} {{\n")
         # 写入类代码
         for line in class_code:
             f.write(line + "\n")
-        # 写入 'auto_ClassName' 命名空间结束
-        f.write(f"}} // namespace {auto_namespace}\n")
-        # 写入其他命名空间结束
+        # 写入命名空间结束
         for ns in reversed(namespaces):
             f.write(f"}} // namespace {ns}\n")
         f.write("\n")  # 空行
@@ -284,13 +274,12 @@ def generate_config_collect_class(output_path):
         for idx, full_class_name in enumerate(generated_top_classes):
             # 处理命名空间和变量名
             parts = full_class_name.split("::")
-            # 提取顶层命名空间部分以生成变量名
-            # 移除 'auto_' 前缀
-            parts_no_auto = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
-            # 移除类名本身
-            parts_no_auto = parts_no_auto[:-1]
-            # 将剩余部分转换为 snake_case
-            var_name_snake = '_'.join([camel_to_snake(part) for part in parts_no_auto])
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
+            class_name = parts[-1]
+            var_name_with_ns = "_".join(parts_without_class)
+            # 将 var_name_with_ns 转换为 snake_case，确保没有连续下划线
+            var_name_snake = camel_to_snake(var_name_with_ns)
             var_name_snake = re.sub('_+', '_', var_name_snake)
             # 生成 if-else 语句
             if idx == 0:
@@ -313,10 +302,11 @@ def generate_config_collect_class(output_path):
         for full_class_name in generated_top_classes:
             # 处理命名空间和变量名
             parts = full_class_name.split("::")
-            # 提取顶层命名空间部分以生成函数名
-            parts_no_auto = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
-            parts_no_auto = parts_no_auto[:-1]
-            var_name_snake = '_'.join([camel_to_snake(part) for part in parts_no_auto])
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
+            var_name_with_ns = "_".join(parts_without_class)
+            # 将 var_name_with_ns 转换为 snake_case，确保没有连续下划线
+            var_name_snake = camel_to_snake(var_name_with_ns)
             var_name_snake = re.sub('_+', '_', var_name_snake)
             # 调用更新函数
             f.write(f"        update_from_yaml_{var_name_snake}(base_path);\n")
@@ -329,14 +319,13 @@ def generate_config_collect_class(output_path):
         for full_class_name in generated_top_classes:
             # 生成成员变量名
             parts = full_class_name.split("::")
-            parts_no_auto = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
-            parts_no_auto = parts_no_auto[:-1]
-            var_name_snake = '_'.join([camel_to_snake(part) for part in parts_no_auto])
-            var_name_snake = re.sub('_+', '_', var_name_snake)
-            f.write(f"        std::cout << indent << \"{var_name_snake}:\" << std::endl;\n")
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
+            var_name_with_ns = "_".join(parts_without_class)
+            f.write(f"        std::cout << indent << \"{var_name_with_ns}:\" << std::endl;\n")
             f.write(f"        {{\n")
-            f.write(f"            std::shared_lock<std::shared_mutex> lock(m_{var_name_snake});\n")
-            f.write(f"            {var_name_snake}.print(indent_level + 1);\n")
+            f.write(f"            std::shared_lock<std::shared_mutex> lock(m_{var_name_with_ns});\n")
+            f.write(f"            {var_name_with_ns}.print(indent_level + 1);\n")
             f.write(f"        }}\n\n")
         f.write("    }\n\n")
 
@@ -345,17 +334,16 @@ def generate_config_collect_class(output_path):
         for full_class_name in generated_top_classes:
             # 处理命名空间和变量名
             parts = full_class_name.split("::")
-            parts_no_auto = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
-            parts_no_auto = parts_no_auto[:-1]
-            var_name_snake = '_'.join([camel_to_snake(part) for part in parts_no_auto])
-            var_name_snake = re.sub('_+', '_', var_name_snake)
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
+            var_name_with_ns = "_".join(parts_without_class)
 
             # 生成 getter 方法名
-            getter_method_name = 'get_' + var_name_snake
+            getter_method_name = 'get_' + var_name_with_ns
             # 生成 getter 方法
             f.write(f"    {full_class_name}& {getter_method_name}() {{\n")
-            f.write(f"        std::shared_lock<std::shared_mutex> lock(m_{var_name_snake});\n")
-            f.write(f"        return {var_name_snake};\n")
+            f.write(f"        std::shared_lock<std::shared_mutex> lock(m_{var_name_with_ns});\n")
+            f.write(f"        return {var_name_with_ns};\n")
             f.write("    }\n\n")
 
         # 添加私有成员变量和函数
@@ -366,25 +354,28 @@ def generate_config_collect_class(output_path):
         for full_class_name in generated_top_classes:
             # 生成成员变量名和对应的函数名
             parts = full_class_name.split("::")
-            parts_no_auto = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
-            parts_no_auto = parts_no_auto[:-1]
+            parts = [part[len("auto_"):] if part.startswith("auto_") else part for part in parts]
+            parts_without_class = parts[:-1]
             class_name = parts[-1]
-            var_name_snake = '_'.join([camel_to_snake(part) for part in parts_no_auto])
-            var_name_snake = re.sub('_+', '_', var_name_snake)
-
-            # 生成函数名
-            function_name_snake = var_name_snake
+            var_name_with_ns = "_".join(parts_without_class)
+            # 将 var_name_with_ns 转换为 snake_case，确保没有连续下划线
+            function_name_snake = camel_to_snake(var_name_with_ns)
+            function_name_snake = re.sub('_+', '_', function_name_snake)
 
             # 添加私有成员变量
-            f.write(f"    {full_class_name} {var_name_snake};\n")
-            f.write(f"    mutable std::shared_mutex m_{var_name_snake};\n\n")
+            f.write(f"    {full_class_name} {var_name_with_ns};\n")
+            f.write(f"    mutable std::shared_mutex m_{var_name_with_ns};\n\n")
 
             # 构建文件路径
-            dir_parts = parts_no_auto  # 目录路径去掉最后的类名
+            dir_parts = parts_without_class  # 目录路径去掉最后的类名
             yaml_class_name = class_name  # 最后的类名为 YAML 文件名
 
             # 将命名空间部分转换为 snake_case
             dir_parts_snake = [camel_to_snake(part) for part in dir_parts]
+
+            # 去掉最后一层目录
+            if dir_parts_snake:
+                dir_parts_snake = dir_parts_snake[:-1]
 
             # YAML 文件名为最后一个类名转换为 snake_case
             yaml_file_name = camel_to_snake(yaml_class_name)
@@ -394,9 +385,9 @@ def generate_config_collect_class(output_path):
             # 构建目录路径，确保移除了最后一层目录
             if dir_parts_snake:
                 dir_path = "/".join(dir_parts_snake)
-                yaml_path = f"base_path + \"/{dir_path}.yaml\""
+                yaml_path = f"base_path + \"/{dir_path}/{yaml_file_name}.yaml\""
             else:
-                yaml_path = f"base_path + \".yaml\""
+                yaml_path = f"base_path + \"/{yaml_file_name}.yaml\""
 
             # 添加私有的 update_from_yaml 函数
             f.write(f"    // 更新 {full_class_name} 配置\n")
@@ -405,12 +396,14 @@ def generate_config_collect_class(output_path):
             f.write(f"        // 加载 YAML 文件\n")
             f.write(f"        auto_yaml_node = YAML::LoadFile({yaml_path});\n")
             f.write(f"        {{\n")
-            f.write(f"            std::unique_lock<std::shared_mutex> lock(m_{var_name_snake});\n")
-            f.write(f"            {var_name_snake}.update_from_yaml(auto_yaml_node);\n")
+            f.write(f"            std::unique_lock<std::shared_mutex> lock(m_{var_name_with_ns});\n")
+            f.write(f"            {var_name_with_ns}.update_from_yaml(auto_yaml_node);\n")
             f.write("        }\n")
             f.write("    }\n\n")
         f.write("};\n\n")
     print("已生成线程安全的懒汉式单例 ConfigCollect 类。")
+
+
 
 def main(input_path, output_path):
     # 清空输出文件并写入头文件内容
@@ -433,6 +426,12 @@ def main(input_path, output_path):
                 else:
                     # 将相对路径分割为各个部分，并转换为命名空间，同时添加 'auto_' 前缀
                     namespaces = ["auto_" + capitalize(part) for part in rel_path.replace('-', '_').split(os.sep)]
+                # 使用文件名（不含扩展名）作为额外的命名空间，同时添加 'auto_' 前缀
+                base_name = os.path.splitext(file)[0]
+                file_namespace = "auto_" + capitalize(base_name)
+                all_namespaces = namespaces + [file_namespace]
+                # 类名与文件名相同
+                class_name = file_namespace
                 # 读取YAML文件
                 try:
                     with open(yaml_file, 'r') as f_yaml:
@@ -446,26 +445,10 @@ def main(input_path, output_path):
                 except Exception as e:
                     print(f"读取文件 {yaml_file} 时出错: {e}")
                     continue
-
-                # 检查 YAML 数据是否有单一顶层键
-                if isinstance(data, dict) and len(data) == 1:
-                    top_key = next(iter(data))
-                    class_name = capitalize(top_key)
-                    # 为顶层类不预先添加命名空间
-                    all_namespaces = namespaces
-                    class_data = data[top_key]
-                else:
-                    # 如果有多个顶层键，使用文件名作为类名
-                    base_name = os.path.splitext(file)[0]
-                    file_namespace = "auto_" + capitalize(base_name)+'_main'
-                    all_namespaces = namespaces
-                    class_name = capitalize(base_name)
-                    class_data = data
-
                 # 生成类
-                generate_class(class_name, class_data, all_namespaces, output_path)
+                generate_class(class_name, data, all_namespaces, output_path)
                 # 构建全限定类名，包括类名本身
-                full_class_name = '::'.join(all_namespaces + [f"auto_{class_name}", class_name])
+                full_class_name = '::'.join(all_namespaces + [class_name])
                 generated_top_classes.append(full_class_name)
 
     # 打印生成的类

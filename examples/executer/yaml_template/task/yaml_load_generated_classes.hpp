@@ -10,6 +10,9 @@
 #include <vector>
 
 namespace openrobot::ocm {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_Executer {
 namespace auto_TaskSetting {
 class TaskSetting {
  public:
@@ -44,8 +47,14 @@ class TaskSetting {
 };
 
 }  // namespace auto_TaskSetting
+}  // namespace auto_Executer
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
-namespace auto_TaskSetting {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_Executer {
+namespace auto_SystemSetting {
 class SystemSetting {
  public:
   SystemSetting() = default;
@@ -101,9 +110,14 @@ class SystemSetting {
   std::vector<double> idle_task_cpu_affinity_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_SystemSetting
+}  // namespace auto_Executer
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
-namespace auto_TaskSetting {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_Executer {
 class Executer {
  public:
   Executer() = default;
@@ -123,9 +137,9 @@ class Executer {
 
   std::string PackageName() const { return package_name_; }
 
-  const auto_TaskSetting::TaskSetting& TaskSetting() const { return task_setting_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_Executer::auto_TaskSetting::TaskSetting& TaskSetting() const { return task_setting_; }
 
-  const auto_TaskSetting::SystemSetting& SystemSetting() const { return system_setting_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_Executer::auto_SystemSetting::SystemSetting& SystemSetting() const { return system_setting_; }
 
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
@@ -139,13 +153,19 @@ class Executer {
 
  private:
   std::string package_name_;
-  auto_TaskSetting::TaskSetting task_setting_;
-  auto_TaskSetting::SystemSetting system_setting_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_Executer::auto_TaskSetting::TaskSetting task_setting_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_Executer::auto_SystemSetting::SystemSetting system_setting_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_Executer
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
-namespace auto_TaskSetting {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_TaskList {
+namespace auto_ResidentGroup {
+namespace auto_NodeList {
 class NodeList {
  public:
   NodeList() = default;
@@ -178,9 +198,112 @@ class NodeList {
   bool output_enable_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_NodeList
+}  // namespace auto_ResidentGroup
+}  // namespace auto_TaskList
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_TaskList {
+namespace auto_ResidentGroup {
 namespace auto_TaskSetting {
+class TaskSetting {
+ public:
+  TaskSetting() = default;
+  ~TaskSetting() = default;
+
+  TaskSetting(const TaskSetting&) = default;
+  TaskSetting& operator=(const TaskSetting&) = default;
+
+  TaskSetting(TaskSetting&&) = default;
+  TaskSetting& operator=(TaskSetting&&) = default;
+
+  void update_from_yaml(const YAML::Node& auto_yaml_node) {
+    if (auto_yaml_node["timer_type"]) timer_type_ = auto_yaml_node["timer_type"].as<std::string>();
+    if (auto_yaml_node["period"]) period_ = auto_yaml_node["period"].as<double>();
+  }
+
+  std::string TimerType() const { return timer_type_; }
+
+  double Period() const { return period_; }
+
+  void print(int indent_level = 0) const {
+    std::string indent(indent_level * 4, ' ');
+    std::cout << indent << "TaskSetting:" << std::endl;
+    std::cout << indent << "    timer_type_: " << timer_type_ << std::endl;
+    std::cout << indent << "    period_: " << period_ << std::endl;
+  }
+
+ private:
+  std::string timer_type_;
+  double period_;
+};
+
+}  // namespace auto_TaskSetting
+}  // namespace auto_ResidentGroup
+}  // namespace auto_TaskList
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
+
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_TaskList {
+namespace auto_ResidentGroup {
+namespace auto_SystemSetting {
+class SystemSetting {
+ public:
+  SystemSetting() = default;
+  ~SystemSetting() = default;
+
+  SystemSetting(const SystemSetting&) = default;
+  SystemSetting& operator=(const SystemSetting&) = default;
+
+  SystemSetting(SystemSetting&&) = default;
+  SystemSetting& operator=(SystemSetting&&) = default;
+
+  void update_from_yaml(const YAML::Node& auto_yaml_node) {
+    if (auto_yaml_node["priority"]) priority_ = auto_yaml_node["priority"].as<double>();
+    if (auto_yaml_node["cpu_affinity"]) {
+      cpu_affinity_.clear();
+      for (auto& item : auto_yaml_node["cpu_affinity"]) {
+        cpu_affinity_.push_back(item.as<double>());
+      }
+    }
+  }
+
+  double Priority() const { return priority_; }
+
+  std::vector<double> CpuAffinity() const { return cpu_affinity_; }
+
+  void print(int indent_level = 0) const {
+    std::string indent(indent_level * 4, ' ');
+    std::cout << indent << "SystemSetting:" << std::endl;
+    std::cout << indent << "    priority_: " << priority_ << std::endl;
+    std::cout << indent << "    cpu_affinity_: [" << std::endl;
+    for (const auto& item : cpu_affinity_) {
+      std::cout << indent << "        " << item << std::endl;
+    }
+    std::cout << indent << "    ]" << std::endl;
+  }
+
+ private:
+  double priority_;
+  std::vector<double> cpu_affinity_;
+};
+
+}  // namespace auto_SystemSetting
+}  // namespace auto_ResidentGroup
+}  // namespace auto_TaskList
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
+
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_TaskList {
+namespace auto_ResidentGroup {
+namespace auto_LaunchSetting {
 class LaunchSetting {
  public:
   LaunchSetting() = default;
@@ -222,9 +345,16 @@ class LaunchSetting {
   double delay_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_LaunchSetting
+}  // namespace auto_ResidentGroup
+}  // namespace auto_TaskList
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
-namespace auto_TaskSetting {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_TaskList {
+namespace auto_ResidentGroup {
 class ResidentGroup {
  public:
   ResidentGroup() = default;
@@ -241,7 +371,7 @@ class ResidentGroup {
     if (auto_yaml_node["node_list"]) {
       node_list_.clear();
       for (auto& item : auto_yaml_node["node_list"]) {
-        auto_TaskSetting::NodeList elem;
+        auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_NodeList::NodeList elem;
         elem.update_from_yaml(item);
         node_list_.push_back(elem);
       }
@@ -253,13 +383,21 @@ class ResidentGroup {
 
   std::string TaskName() const { return task_name_; }
 
-  std::vector<auto_TaskSetting::NodeList> NodeList() const { return node_list_; }
+  std::vector<auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_NodeList::NodeList> NodeList() const {
+    return node_list_;
+  }
 
-  const auto_TaskSetting::TaskSetting& TaskSetting() const { return task_setting_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_TaskSetting::TaskSetting& TaskSetting() const {
+    return task_setting_;
+  }
 
-  const auto_TaskSetting::SystemSetting& SystemSetting() const { return system_setting_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_SystemSetting::SystemSetting& SystemSetting() const {
+    return system_setting_;
+  }
 
-  const auto_TaskSetting::LaunchSetting& LaunchSetting() const { return launch_setting_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_LaunchSetting::LaunchSetting& LaunchSetting() const {
+    return launch_setting_;
+  }
 
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
@@ -280,73 +418,20 @@ class ResidentGroup {
 
  private:
   std::string task_name_;
-  std::vector<auto_TaskSetting::NodeList> node_list_;
-  auto_TaskSetting::TaskSetting task_setting_;
-  auto_TaskSetting::SystemSetting system_setting_;
-  auto_TaskSetting::LaunchSetting launch_setting_;
+  std::vector<auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_NodeList::NodeList> node_list_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_TaskSetting::TaskSetting task_setting_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_SystemSetting::SystemSetting system_setting_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::auto_LaunchSetting::LaunchSetting launch_setting_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_ResidentGroup
+}  // namespace auto_TaskList
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
-namespace auto_TaskSetting {
-class StandbyGroup {
- public:
-  StandbyGroup() = default;
-  ~StandbyGroup() = default;
-
-  StandbyGroup(const StandbyGroup&) = default;
-  StandbyGroup& operator=(const StandbyGroup&) = default;
-
-  StandbyGroup(StandbyGroup&&) = default;
-  StandbyGroup& operator=(StandbyGroup&&) = default;
-
-  void update_from_yaml(const YAML::Node& auto_yaml_node) {
-    if (auto_yaml_node["task_name"]) task_name_ = auto_yaml_node["task_name"].as<std::string>();
-    if (auto_yaml_node["node_list"]) {
-      node_list_.clear();
-      for (auto& item : auto_yaml_node["node_list"]) {
-        auto_TaskSetting::NodeList elem;
-        elem.update_from_yaml(item);
-        node_list_.push_back(elem);
-      }
-    }
-    if (auto_yaml_node["task_setting"]) task_setting_.update_from_yaml(auto_yaml_node["task_setting"]);
-    if (auto_yaml_node["system_setting"]) system_setting_.update_from_yaml(auto_yaml_node["system_setting"]);
-  }
-
-  std::string TaskName() const { return task_name_; }
-
-  std::vector<auto_TaskSetting::NodeList> NodeList() const { return node_list_; }
-
-  const auto_TaskSetting::TaskSetting& TaskSetting() const { return task_setting_; }
-
-  const auto_TaskSetting::SystemSetting& SystemSetting() const { return system_setting_; }
-
-  void print(int indent_level = 0) const {
-    std::string indent(indent_level * 4, ' ');
-    std::cout << indent << "StandbyGroup:" << std::endl;
-    std::cout << indent << "    task_name_: " << task_name_ << std::endl;
-    std::cout << indent << "    node_list_: [" << std::endl;
-    for (const auto& item : node_list_) {
-      item.print(indent_level + 2);
-    }
-    std::cout << indent << "    ]" << std::endl;
-    std::cout << indent << "    task_setting_:" << std::endl;
-    task_setting_.print(indent_level + 1);
-    std::cout << indent << "    system_setting_:" << std::endl;
-    system_setting_.print(indent_level + 1);
-  }
-
- private:
-  std::string task_name_;
-  std::vector<auto_TaskSetting::NodeList> node_list_;
-  auto_TaskSetting::TaskSetting task_setting_;
-  auto_TaskSetting::SystemSetting system_setting_;
-};
-
-}  // namespace auto_TaskSetting
-
-namespace auto_TaskSetting {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+namespace auto_TaskList {
 class TaskList {
  public:
   TaskList() = default;
@@ -362,24 +447,16 @@ class TaskList {
     if (auto_yaml_node["resident_group"]) {
       resident_group_.clear();
       for (auto& item : auto_yaml_node["resident_group"]) {
-        auto_TaskSetting::ResidentGroup elem;
+        auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::ResidentGroup elem;
         elem.update_from_yaml(item);
         resident_group_.push_back(elem);
       }
     }
-    if (auto_yaml_node["standby_group"]) {
-      standby_group_.clear();
-      for (auto& item : auto_yaml_node["standby_group"]) {
-        auto_TaskSetting::StandbyGroup elem;
-        elem.update_from_yaml(item);
-        standby_group_.push_back(elem);
-      }
-    }
   }
 
-  std::vector<auto_TaskSetting::ResidentGroup> ResidentGroup() const { return resident_group_; }
-
-  std::vector<auto_TaskSetting::StandbyGroup> StandbyGroup() const { return standby_group_; }
+  std::vector<auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::ResidentGroup> ResidentGroup() const {
+    return resident_group_;
+  }
 
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
@@ -389,118 +466,54 @@ class TaskList {
       item.print(indent_level + 2);
     }
     std::cout << indent << "    ]" << std::endl;
-    std::cout << indent << "    standby_group_: [" << std::endl;
-    for (const auto& item : standby_group_) {
-      item.print(indent_level + 2);
-    }
-    std::cout << indent << "    ]" << std::endl;
   }
 
  private:
-  std::vector<auto_TaskSetting::ResidentGroup> resident_group_;
-  std::vector<auto_TaskSetting::StandbyGroup> standby_group_;
+  std::vector<auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::auto_ResidentGroup::ResidentGroup> resident_group_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_TaskList
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
-namespace auto_TaskSetting {
-class ExclusiveTaskGroup {
+namespace auto_TaskConfig_main {
+namespace auto_TaskConfig {
+class TaskConfig {
  public:
-  ExclusiveTaskGroup() = default;
-  ~ExclusiveTaskGroup() = default;
+  TaskConfig() = default;
+  ~TaskConfig() = default;
 
-  ExclusiveTaskGroup(const ExclusiveTaskGroup&) = default;
-  ExclusiveTaskGroup& operator=(const ExclusiveTaskGroup&) = default;
+  TaskConfig(const TaskConfig&) = default;
+  TaskConfig& operator=(const TaskConfig&) = default;
 
-  ExclusiveTaskGroup(ExclusiveTaskGroup&&) = default;
-  ExclusiveTaskGroup& operator=(ExclusiveTaskGroup&&) = default;
-
-  void update_from_yaml(const YAML::Node& auto_yaml_node) {
-    if (auto_yaml_node["group_name"]) group_name_ = auto_yaml_node["group_name"].as<std::string>();
-    if (auto_yaml_node["task_list"]) {
-      task_list_.clear();
-      for (auto& item : auto_yaml_node["task_list"]) {
-        auto_TaskSetting::TaskList elem;
-        elem.update_from_yaml(item);
-        task_list_.push_back(elem);
-      }
-    }
-  }
-
-  std::string GroupName() const { return group_name_; }
-
-  std::vector<auto_TaskSetting::TaskList> TaskList() const { return task_list_; }
-
-  void print(int indent_level = 0) const {
-    std::string indent(indent_level * 4, ' ');
-    std::cout << indent << "ExclusiveTaskGroup:" << std::endl;
-    std::cout << indent << "    group_name_: " << group_name_ << std::endl;
-    std::cout << indent << "    task_list_: [" << std::endl;
-    for (const auto& item : task_list_) {
-      item.print(indent_level + 2);
-    }
-    std::cout << indent << "    ]" << std::endl;
-  }
-
- private:
-  std::string group_name_;
-  std::vector<auto_TaskSetting::TaskList> task_list_;
-};
-
-}  // namespace auto_TaskSetting
-
-namespace auto_TaskSetting {
-class auto_TaskSetting {
- public:
-  auto_TaskSetting() = default;
-  ~auto_TaskSetting() = default;
-
-  auto_TaskSetting(const auto_TaskSetting&) = default;
-  auto_TaskSetting& operator=(const auto_TaskSetting&) = default;
-
-  auto_TaskSetting(auto_TaskSetting&&) = default;
-  auto_TaskSetting& operator=(auto_TaskSetting&&) = default;
+  TaskConfig(TaskConfig&&) = default;
+  TaskConfig& operator=(TaskConfig&&) = default;
 
   void update_from_yaml(const YAML::Node& auto_yaml_node) {
     if (auto_yaml_node["executer"]) executer_.update_from_yaml(auto_yaml_node["executer"]);
     if (auto_yaml_node["task_list"]) task_list_.update_from_yaml(auto_yaml_node["task_list"]);
-    if (auto_yaml_node["exclusive_task_group"]) {
-      exclusive_task_group_.clear();
-      for (auto& item : auto_yaml_node["exclusive_task_group"]) {
-        auto_TaskSetting::ExclusiveTaskGroup elem;
-        elem.update_from_yaml(item);
-        exclusive_task_group_.push_back(elem);
-      }
-    }
   }
 
-  const auto_TaskSetting::Executer& Executer() const { return executer_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_Executer::Executer& Executer() const { return executer_; }
 
-  const auto_TaskSetting::TaskList& TaskList() const { return task_list_; }
-
-  std::vector<auto_TaskSetting::ExclusiveTaskGroup> ExclusiveTaskGroup() const { return exclusive_task_group_; }
+  const auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::TaskList& TaskList() const { return task_list_; }
 
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
-    std::cout << indent << "auto_TaskSetting:" << std::endl;
+    std::cout << indent << "TaskConfig:" << std::endl;
     std::cout << indent << "    executer_:" << std::endl;
     executer_.print(indent_level + 1);
     std::cout << indent << "    task_list_:" << std::endl;
     task_list_.print(indent_level + 1);
-    std::cout << indent << "    exclusive_task_group_: [" << std::endl;
-    for (const auto& item : exclusive_task_group_) {
-      item.print(indent_level + 2);
-    }
-    std::cout << indent << "    ]" << std::endl;
   }
 
  private:
-  auto_TaskSetting::Executer executer_;
-  auto_TaskSetting::TaskList task_list_;
-  std::vector<auto_TaskSetting::ExclusiveTaskGroup> exclusive_task_group_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_Executer::Executer executer_;
+  auto_TaskConfig_main::auto_TaskConfig::auto_TaskList::TaskList task_list_;
 };
 
-}  // namespace auto_TaskSetting
+}  // namespace auto_TaskConfig
+}  // namespace auto_TaskConfig_main
 
 class ConfigCollect {
  public:
@@ -524,8 +537,8 @@ class ConfigCollect {
       return;
     }
     bool matched = false;
-    if (name == "task_setting") {
-      update_from_yaml_task_setting(base_path);
+    if (name == "task_config_main_task_config") {
+      update_from_yaml_task_config_main_task_config(base_path);
       matched = true;
     }
     if (!matched) {
@@ -535,39 +548,39 @@ class ConfigCollect {
   }
 
   // 更新所有配置
-  void update_from_yaml_all(const std::string& base_path) { update_from_yaml_task_setting(base_path); }
+  void update_from_yaml_all(const std::string& base_path) { update_from_yaml_task_config_main_task_config(base_path); }
 
   // 打印所有配置
   void print(int indent_level = 0) const {
     std::string indent(indent_level * 4, ' ');
-    std::cout << indent << "TaskSetting:" << std::endl;
+    std::cout << indent << "task_config_main_task_config:" << std::endl;
     {
-      std::shared_lock<std::shared_mutex> lock(m_TaskSetting);
-      TaskSetting.print(indent_level + 1);
+      std::shared_lock<std::shared_mutex> lock(m_task_config_main_task_config);
+      task_config_main_task_config.print(indent_level + 1);
     }
   }
 
   // 获取各个配置的实例
-  auto_TaskSetting::auto_TaskSetting& get_TaskSetting() {
-    std::shared_lock<std::shared_mutex> lock(m_TaskSetting);
-    return TaskSetting;
+  auto_TaskConfig_main::auto_TaskConfig::TaskConfig& get_task_config_main_task_config() {
+    std::shared_lock<std::shared_mutex> lock(m_task_config_main_task_config);
+    return task_config_main_task_config;
   }
 
  private:
   // 私有构造函数，防止外部实例化
   ConfigCollect() = default;
 
-  auto_TaskSetting::auto_TaskSetting TaskSetting;
-  mutable std::shared_mutex m_TaskSetting;
+  auto_TaskConfig_main::auto_TaskConfig::TaskConfig task_config_main_task_config;
+  mutable std::shared_mutex m_task_config_main_task_config;
 
-  // 更新 auto_TaskSetting::auto_TaskSetting 配置
-  void update_from_yaml_task_setting(const std::string& base_path) {
+  // 更新 auto_TaskConfig_main::auto_TaskConfig::TaskConfig 配置
+  void update_from_yaml_task_config_main_task_config(const std::string& base_path) {
     YAML::Node auto_yaml_node;
     // 加载 YAML 文件
-    auto_yaml_node = YAML::LoadFile(base_path + "/task_setting.yaml");
+    auto_yaml_node = YAML::LoadFile(base_path + "/task_config_main/task_config/task_config.yaml");
     {
-      std::unique_lock<std::shared_mutex> lock(m_TaskSetting);
-      TaskSetting.update_from_yaml(auto_yaml_node);
+      std::unique_lock<std::shared_mutex> lock(m_task_config_main_task_config);
+      task_config_main_task_config.update_from_yaml(auto_yaml_node);
     }
   }
 };

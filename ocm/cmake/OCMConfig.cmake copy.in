@@ -18,17 +18,5 @@ set(OCM_YAML-CPP_LIBRARIES yaml-cpp::yaml-cpp)
 set(OCM_INCLUDE_DIRS ${OCM_INCLUDE_DIRS} ${OCM_YAML-CPP_INCLUDE_DIRS} CACHE STRING "OCM include directories")
 set(OCM_LIBRARIES ${OCM_LIBRARIES} ${OCM_YAML-CPP_LIBRARIES} CACHE STRING "OCM libraries")
 
-# 查找 OCMTargets.cmake 文件
-find_path(OCM_TARGETS_PATH
-  NAMES OCMTargets.cmake
-  PATH_SUFFIXES lib/cmake/OCM
-  PATHS ${CMAKE_PREFIX_PATH}
-)
-
-# 检查是否找到文件并包含
-if(OCM_TARGETS_PATH)
-  message(STATUS "找到 OCMTargets.cmake 文件在: ${OCM_TARGETS_PATH}")
-  include("${OCM_TARGETS_PATH}/OCMTargets.cmake")
-else()
-  message(FATAL_ERROR "在所有 CMAKE_PREFIX_PATH 路径中未找到 OCMTargets.cmake 文件。")
-endif()
+set(OCM_CMAKE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/OCM")
+include("${OCM_CMAKE_DIR}/OCMTargets.cmake")

@@ -104,13 +104,13 @@ void TaskBase::TaskDestroy() {
 void TaskBase::Run() { logger.debug("[TASK] {} task thread is running!", thread_name_); }
 
 void TaskBase::Loop() {
-  std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int64_t>(sleep_duration_ * 1000)));
   openrobot::ocm::rt::set_thread_name(thread_name_);
   TimerOnce loop_timer;
   TimerOnce run_timer;
   while (thread_alive_.load()) {
     state_.store(TaskState::STANDBY);
     sem_.acquire();
+    std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int64_t>(sleep_duration_ * 1000)));
     while (loop_run_.load()) {
       timer_->Sleep(GetRunDuration());
       loop_duration_.store(loop_timer.getMs());

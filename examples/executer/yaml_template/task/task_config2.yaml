@@ -1,0 +1,32 @@
+executer:
+  package_name: "executer"
+  task_setting:
+    timer_type: "EXTERNAL_TIMER"
+    period: 1
+  system_setting:
+    priority: 50
+    executer_cpu_affinity:
+      - 0
+      - 1
+    idle_task_cpu_affinity:
+      - 0
+      - 1
+
+#--------------------------------------
+task_list:
+  #--------------------------------------
+  resident_group:
+    # --------------------------------------
+    - task_name: "NodeA"
+      node_list:
+        - node_name: "NodeA"
+          output_enable: True
+      task_setting:
+        timer_type: "EXTERNAL_TIMER"
+        period: 1
+      system_setting:
+        priority: 50
+        cpu_affinity: [0]
+      launch_setting:
+        pre_node: []
+        delay: 0

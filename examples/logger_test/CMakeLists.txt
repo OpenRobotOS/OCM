@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_PREFIX_PATH)
   set(CMAKE_PREFIX_PATH
-      "/opt/openrobotlib"
+      "/opt/openrobotlib/ocm" "/opt/openrobotlib/third_party"
       CACHE PATH "Default prefix path" FORCE)
 endif()
 

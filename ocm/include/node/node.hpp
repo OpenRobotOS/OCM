@@ -13,13 +13,14 @@ class NodeBase {
 
   virtual void Init() = 0;
   virtual void Execute() = 0;
+  virtual void Output() = 0;
+  virtual bool TryEnter() = 0;
+  virtual bool TryExit() = 0;
+
   void RunOnce() {
     Execute();
     SetState(NodeState::RUNNING);
   }
-  virtual void Output() = 0;
-  virtual bool TryEnter() = 0;
-  virtual bool TryExit() = 0;
   bool EnterCheck() { return TryEnter(); }
   bool ExitCheck() {
     SetState(NodeState::STANDBY);

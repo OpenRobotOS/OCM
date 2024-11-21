@@ -1,6 +1,7 @@
 #include "executer/executer.hpp"
 #include <memory>
 #include "common/enum.hpp"
+#include "log_anywhere/log_anywhere.hpp"
 #include "node/node_map.hpp"
 #include "node_test.hpp"
 #include "yaml_load_generated_classes.hpp"
@@ -25,6 +26,13 @@ class TaskTimer : public openrobot::ocm::TaskBase {
 };
 
 int main() {
+  openrobot::ocm::LoggerConfig log_config;
+  log_config.logger_name = "my_custom_logger";
+  log_config.log_file = "my_logs/application.log";
+  log_config.queue_size = 16384;  // 可选，默认8192
+  log_config.thread_count = 2;    // 可选，默认1
+  auto& logger = openrobot::ocm::LogAnywhere::getInstance(log_config);
+
   TaskTimer timer_task;
   timer_task.SetPeriod(0.001);
   timer_task.TaskStart();

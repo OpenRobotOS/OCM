@@ -1,14 +1,9 @@
-#include "logger/logger.hpp"
 #include <spdlog/common.h>
+#include "log_anywhere/log_anywhere.hpp"
 
 int main() {
   // 定义日志配置
-  openrobot::ocm::LoggerConfig config;
-  config.logger_name = "my_custom_logger";
-  config.log_file = "my_logs/application.log";
-  config.queue_size = 16384;  // 可选，默认8192
-  config.thread_count = 2;    // 可选，默认1
-  auto& logger = openrobot::ocm::Logger::getInstance(config);
+
   logger.setLogLevel(spdlog::level::critical);
   // 初始化 Logger 单例
   logger.info("Logger 已初始化，日志文件：{}", config.log_file);
