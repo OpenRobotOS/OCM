@@ -54,6 +54,7 @@ void SleepTrigger::Continue() { sem_.Increment(); }
 
 TaskBase::TaskBase(const std::string& thread_name, TimerType type, double sleep_duration, const std::string& sem_name)
     : sem_(0), sleep_duration_(sleep_duration) {
+  logger_ = spdlog::get("openrobot_ocm_logger");
   if (type == TimerType::INTERNAL_TIMER) {
     timer_ = std::make_unique<SleepInternalTimer>();
   } else if (type == TimerType::EXTERNAL_TIMER) {
@@ -72,21 +73,21 @@ TaskBase::TaskBase(const std::string& thread_name, TimerType type, double sleep_
 void TaskBase::TaskCreate() {
   thread_alive_.store(true);
   thread_ = std::thread([this] { Loop(); });
-  logger.debug("[TASK] {} task thread has been created!", thread_name_);
+  logger_->debug("[TASK] {} task thread has been created!", thread_name_);
 }
 
 void TaskBase::TaskStart() {
   run_flag_.store(true);
   loop_run_.store(true);
   sem_.release();
-  logger.debug("[TASK] {} task thread ready to run!", thread_name_);
+  logger_->debug("[TASK] {} task thread ready to run!", thread_name_);
 }
 
 void TaskBase::TaskStop() {
   run_flag_.store(false);
   loop_run_.store(false);
   timer_->Continue();
-  logger.debug("[TASK] {} task thread ready to stop!", thread_name_);
+  logger_->debug("[TASK] {} task thread ready to stop!", thread_name_);
 }
 void TaskBase::TaskDestroy() {
   thread_alive_.store(false);
@@ -95,13 +96,13 @@ void TaskBase::TaskDestroy() {
   timer_->Continue();
   if (thread_.joinable()) {
     thread_.join();
-    logger.debug("[TASK] {} task thread has been safely destroyed!", thread_name_);
+    logger_->debug("[TASK] {} task thread has been safely destroyed!", thread_name_);
   } else {
-    logger.debug("[TASK] {} task thread was already detached or finished!", thread_name_);
+    logger_->debug("[TASK] {} task thread was already detached or finished!", thread_name_);
   }
 }
 
-void TaskBase::Run() { logger.debug("[TASK] {} task thread is running!", thread_name_); }
+void TaskBase::Run() { logger_->debug("[TASK] {} task thread is running!", thread_name_); }
 
 void TaskBase::Loop() {
   openrobot::ocm::rt::set_thread_name(thread_name_);

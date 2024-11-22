@@ -28,11 +28,11 @@ class TaskTimer : public openrobot::ocm::TaskBase {
 
 int main() {
   openrobot::ocm::LoggerConfig log_config;
-  log_config.logger_name = "my_custom_logger";
-  log_config.log_file = "my_logs/application.log";
-  log_config.queue_size = 16384;  // 可选，默认8192
-  log_config.thread_count = 2;    // 可选，默认1
-  auto& logger = openrobot::ocm::LogAnywhere::getInstance(log_config);
+  log_config.log_file = "my_logs/executer_test.log";
+  log_config.queue_size = 8192;  // 可选，默认8192
+  log_config.thread_count = 1;   // 可选，默认1
+  auto logger = std::make_shared<openrobot::ocm::LogAnywhere>(log_config);
+  logger->logger_->set_level(spdlog::level::trace);
 
   TaskTimer timer_task;
   timer_task.SetPeriod(0.001);
@@ -42,11 +42,11 @@ int main() {
   // config.print();
 
   std::shared_ptr<NodeMap> node_map = std::make_shared<NodeMap>();
-  node_map->AddNode("NodeA", std::make_shared<NodeA>());
-  node_map->AddNode("NodeB", std::make_shared<NodeB>());
-  node_map->AddNode("NodeC", std::make_shared<NodeC>());
-  node_map->AddNode("NodeD", std::make_shared<NodeD>());
-  node_map->AddNode("NodeE", std::make_shared<NodeE>());
+  node_map->AddNode("NodeA", std::make_shared<NodeA>("NodeA"));
+  node_map->AddNode("NodeB", std::make_shared<NodeB>("NodeB"));
+  node_map->AddNode("NodeC", std::make_shared<NodeC>("NodeC"));
+  node_map->AddNode("NodeD", std::make_shared<NodeD>("NodeD"));
+  node_map->AddNode("NodeE", std::make_shared<NodeE>("NodeE"));
   ExecuterConfig executer_config;
 
   const auto& executer_setting = config.get_task_config().ExecuterSetting();
@@ -105,10 +105,16 @@ int main() {
       group_task_setting.pre_node = task.PreNode();
       group_setting.task_list[task.TaskName()] = group_task_setting;
     }
+    executer_config.exclusive_task_group[group.GroupName()] = group_setting;
   }
 
   Executer executer(executer_config, node_map);
-  executer.Init();
+  executer.CreateTask();
+  executer.InitTask();
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+  executer.desired_group_ = "passive";
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  executer.desired_group_ = "pdstand";
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }

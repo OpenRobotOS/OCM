@@ -4,103 +4,72 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <filesystem>
-#include <iostream>
 #include <memory>
-#include <vector>
-
+#include <set>
 namespace openrobot::ocm {
+
+inline std::string JointStrSet(const std::set<std::string>& s, const std::string& delimiter) {
+  std::string result;
+  for (auto it = s.begin(); it != s.end(); ++it) {
+    if (it != s.begin()) {
+      result += delimiter;
+    }
+    result += *it;
+  }
+  return result;
+}
+enum class ColorEnum : uint8_t { RED = 0, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE };
+
+inline std::string ColorPrint(const std::string& str, ColorEnum color) {
+  std::string color_code;
+
+  // 根据 ColorEnum 枚举值设置 ANSI 颜色代码
+  switch (color) {
+    case ColorEnum::RED:
+      color_code = "\033[31m";  // 红色
+      break;
+    case ColorEnum::GREEN:
+      color_code = "\033[32m";  // 绿色
+      break;
+    case ColorEnum::YELLOW:
+      color_code = "\033[33m";  // 黄色
+      break;
+    case ColorEnum::BLUE:
+      color_code = "\033[34m";  // 蓝色
+      break;
+    case ColorEnum::MAGENTA:
+      color_code = "\033[35m";  // 品红色
+      break;
+    case ColorEnum::CYAN:
+      color_code = "\033[36m";  // 青色
+      break;
+    case ColorEnum::WHITE:
+      color_code = "\033[37m";  // 白色
+      break;
+  }
+
+  // 重置颜色
+  std::string reset_code = "\033[0m";
+
+  // 返回带颜色的字符串
+  return color_code + str + reset_code;
+}
 // 配置结构体
 struct LoggerConfig {
-  std::string logger_name = "async_file_logger";  // 日志器名称
-  std::string log_file = "logs/log.txt";          // 日志文件路径
-  size_t queue_size = 8192;                       // 队列大小
-  size_t thread_count = 1;                        // 后台线程数
+  std::string log_file = "logs/log.txt";  // 日志文件路径
+  size_t queue_size = 8192;               // 队列大小
+  size_t thread_count = 1;                // 后台线程数
 };
 
 // LogAnywhere 单例类
 class LogAnywhere {
  public:
-  // 获取单例实例的静态方法，接受可选的配置参数
-  static LogAnywhere& getInstance(const LoggerConfig& config = LoggerConfig()) {
-    // 局部静态变量，确保只初始化一次，并且线程安全
-    static LogAnywhere instance(config);
-    return instance;
-  }
+  LogAnywhere(const LoggerConfig& config);
+  ~LogAnywhere();
 
   // 删除拷贝构造函数和赋值运算符，防止拷贝
   LogAnywhere(const LogAnywhere&) = delete;
   LogAnywhere& operator=(const LogAnywhere&) = delete;
-
-  // 提供日志记录的方法
-  template <typename... Args>
-  void trace(const char* fmt, const Args&... args) {
-    logger_->trace(fmt, args...);
-  }
-
-  template <typename... Args>
-  void debug(const char* fmt, const Args&... args) {
-    logger_->debug(fmt, args...);
-  }
-
-  template <typename... Args>
-  void info(const char* fmt, const Args&... args) {
-    logger_->info(fmt, args...);
-  }
-
-  template <typename... Args>
-  void warn(const char* fmt, const Args&... args) {
-    logger_->warn(fmt, args...);
-  }
-
-  template <typename... Args>
-  void error(const char* fmt, const Args&... args) {
-    logger_->error(fmt, args...);
-  }
-
-  template <typename... Args>
-  void critical(const char* fmt, const Args&... args) {
-    logger_->critical(fmt, args...);
-  }
-
-  // 动态设置日志级别
-  void setLogLevel(spdlog::level::level_enum level) { logger_->set_level(level); }
-
- private:
-  // 私有构造函数，接受配置参数
-  LogAnywhere(const LoggerConfig& config) {
-    try {
-      // 确保日志目录存在
-      std::filesystem::create_directories(std::filesystem::path(config.log_file).parent_path());
-
-      // 初始化线程池，队列大小和线程数由配置决定
-      spdlog::init_thread_pool(config.queue_size, config.thread_count);
-
-      // 创建多个 sink：文件和控制台
-      std::vector<spdlog::sink_ptr> sinks;
-      sinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(config.log_file, true));
-      sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-
-      // 创建异步日志器
-      logger_ = std::make_shared<spdlog::async_logger>(config.logger_name, sinks.begin(), sinks.end(), spdlog::thread_pool(),
-                                                       spdlog::async_overflow_policy::block);
-
-      // 设置日志级别和格式
-      logger_->set_level(spdlog::level::trace);  // 设置最低日志级别
-      logger_->set_pattern("[%P][%T][%Y-%m-%d %H:%M:%S][%^%l%$] %v");
-
-      // 注册到 spdlog 的全局注册表（可选）
-      spdlog::register_logger(logger_);
-    } catch (const spdlog::spdlog_ex& ex) {
-      // 处理初始化失败的情况
-      std::cerr << "LogAnywhere initialization failed: " << ex.what() << std::endl;
-    }
-  }
-
-  ~LogAnywhere() {
-    // 在程序结束时，确保日志器被正确关闭
-    spdlog::shutdown();
-  }
 
   std::shared_ptr<spdlog::logger> logger_;  // spdlog 日志器
 };

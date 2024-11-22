@@ -99,6 +99,6 @@ class TaskBase {
 
   std::atomic<TaskState> state_;
 
-  openrobot::ocm::LogAnywhere& logger = openrobot::ocm::LogAnywhere::getInstance();
+  std::shared_ptr<spdlog::logger> logger_;
 };
 }  // namespace openrobot::ocm

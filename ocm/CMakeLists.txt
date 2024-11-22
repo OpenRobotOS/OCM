@@ -51,11 +51,11 @@ find_package(lcm REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
-add_compile_options(-no-pie -O3 -march=native)
+add_compile_options(-no-pie -fPIC -O3 -march=native)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-add_library(OCM STATIC src/ocm.cpp src/task.cpp)
+add_library(OCM SHARED src/ocm.cpp src/task.cpp src/log_anywhere.cpp)
 
 # 1. 指定头文件路径
 target_include_directories(

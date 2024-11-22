@@ -1,9 +1,22 @@
 #include "ocm/ocm.hpp"
-#include <iostream>
+#include <errno.h>
+#include <fcntl.h>
+#include <semaphore.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <cassert>
+#include <cstring>
+#include <stdexcept>
 
 namespace openrobot::ocm {
+
 SharedMemorySemaphore::SharedMemorySemaphore(const std::string& name, unsigned int value) { Init(name, value); }
-SharedMemorySemaphore::SharedMemorySemaphore(const SharedMemorySemaphore&) { throw std::logic_error("[SharedMemorySemaphore]copy construct!"); }
+
+SharedMemorySemaphore::SharedMemorySemaphore(const SharedMemorySemaphore&) {
+  throw std::logic_error("[SharedMemorySemaphore] Copy constructor is not allowed!");
+}
+
 /*!
  * 打开现有的命名信号量，如果信号量不存在，则创建它。
  * @param name 信号量的名字
@@ -12,7 +25,7 @@ SharedMemorySemaphore::SharedMemorySemaphore(const SharedMemorySemaphore&) { thr
 void SharedMemorySemaphore::Init(const std::string& name, unsigned int value) {
   sem_ = sem_open(name.c_str(), O_CREAT, 0644, value);
   if (sem_ == SEM_FAILED) {
-    std::cerr << "[ERROR] Failed to initialize shared memory semaphore: " << strerror(errno) << "\n";
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to initialize shared memory semaphore: " + std::string(strerror(errno)));
   } else {
     name_ = name;
   }
@@ -23,18 +36,21 @@ void SharedMemorySemaphore::Init(const std::string& name, unsigned int value) {
  */
 void SharedMemorySemaphore::Increment() {
   if (sem_post(sem_) != 0) {
-    std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to increment semaphore: " + std::string(strerror(errno)));
   }
 }
+
 /*!
- * 增加信号量的值。
+ * 增加信号量的值，当信号量为零时。
  */
 void SharedMemorySemaphore::IncrementWhenZero() {
   int value;
-  sem_getvalue(sem_, &value);
+  if (sem_getvalue(sem_, &value) != 0) {
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to get semaphore value: " + std::string(strerror(errno)));
+  }
   if (value == 0) {
     if (sem_post(sem_) != 0) {
-      std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
+      throw std::runtime_error("[SharedMemorySemaphore] Failed to increment semaphore: " + std::string(strerror(errno)));
     }
   }
 }
@@ -45,7 +61,7 @@ void SharedMemorySemaphore::IncrementWhenZero() {
 void SharedMemorySemaphore::Increment(unsigned int value) {
   for (unsigned int i = 0; i < value; ++i) {
     if (sem_post(sem_) != 0) {
-      std::cerr << "[ERROR] Failed to increment semaphore: " << strerror(errno) << "\n";
+      throw std::runtime_error("[SharedMemorySemaphore] Failed to increment semaphore: " + std::string(strerror(errno)));
     }
   }
 }
@@ -55,7 +71,7 @@ void SharedMemorySemaphore::Increment(unsigned int value) {
  */
 void SharedMemorySemaphore::Decrement() {
   if (sem_wait(sem_) != 0) {
-    std::cerr << "[ERROR] Failed to decrement semaphore: " << strerror(errno) << "\n";
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to decrement semaphore: " + std::string(strerror(errno)));
   }
 }
 
@@ -73,9 +89,12 @@ bool SharedMemorySemaphore::TryDecrement() { return (sem_trywait(sem_) == 0); }
  */
 bool SharedMemorySemaphore::DecrementTimeout(uint64_t seconds, uint64_t nanoseconds) {
   struct timespec ts;
-  clock_gettime(CLOCK_REALTIME, &ts);
-  ts.tv_nsec += nanoseconds;
+  if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to get current time: " + std::string(strerror(errno)));
+  }
+
   ts.tv_sec += seconds;
+  ts.tv_nsec += nanoseconds;
   ts.tv_sec += ts.tv_nsec / 1000000000;
   ts.tv_nsec %= 1000000000;
 
@@ -87,21 +106,26 @@ bool SharedMemorySemaphore::DecrementTimeout(uint64_t seconds, uint64_t nanoseco
  */
 void SharedMemorySemaphore::Destroy() {
   if (sem_close(sem_) != 0) {
-    std::cerr << "[ERROR] Failed to close semaphore: " << strerror(errno) << "\n";
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to close semaphore: " + std::string(strerror(errno)));
   }
   if (sem_unlink(name_.c_str()) != 0) {
-    std::cerr << "[ERROR] Failed to unlink semaphore: " << strerror(errno) << "\n";
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to unlink semaphore: " + std::string(strerror(errno)));
   }
 }
 
 int SharedMemorySemaphore::GetValue() const {
   int value;
-  sem_getvalue(sem_, &value);
+  if (sem_getvalue(sem_, &value) != 0) {
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to get semaphore value: " + std::string(strerror(errno)));
+  }
   return value;
 }
 
 SharedMemoryData::SharedMemoryData(const std::string& name, size_t size) : sem_(name, 1), data_(nullptr), fd_(0) { Init(name, size); }
-SharedMemoryData::SharedMemoryData(const SharedMemoryData&) : sem_("", 1) { throw std::logic_error("[SharedMemoryData]copy construct!"); }
+
+SharedMemoryData::SharedMemoryData(const SharedMemoryData&) : sem_("", 1) {
+  throw std::logic_error("[SharedMemoryData] Copy constructor is not allowed!");
+}
 
 void SharedMemoryData::Init(const std::string& name, size_t size) {
   assert(!data_);  // 确保当前没有分配共享内存
@@ -114,41 +138,44 @@ void SharedMemoryData::Init(const std::string& name, size_t size) {
   if (fd_ == -1) {
     // 如果共享内存对象不存在，创建它
     if (errno == ENOENT) {
-      printf("[Shared Memory] %s not found, creating new shared memory, size %ld bytes\n", name.c_str(), size_);
-      fd_ = shm_open(name.c_str(), O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
-      if (fd_ == -1) {
-        printf("[ERROR] SharedMemoryManager shm_open failed: %s\n", strerror(errno));
-        throw std::runtime_error("Failed to create or attach shared memory!");
-      }
-      // 设置共享内存大小
-      if (ftruncate(fd_, size_)) {
-        printf("[ERROR] SharedMemoryManager::Init(%s) ftruncate(%ld): %s\n", name.c_str(), size_, strerror(errno));
-        throw std::runtime_error("Failed to create or attach shared memory!");
-      }
-      is_create = true;
+      throw std::runtime_error("[SharedMemoryData] Shared memory \"" + name + "\" not found, attempting to create it.");
     } else {
-      printf("[ERROR] SharedMemoryManager shm_open failed: %s\n", strerror(errno));
-      throw std::runtime_error("Failed to create or attach shared memory!");
+      throw std::runtime_error("[SharedMemoryData] shm_open failed: " + std::string(strerror(errno)));
     }
   } else {
     struct stat s;
     if (fstat(fd_, &s)) {
-      printf("[ERROR] SharedMemoryManager::Init(%s) stat: %s\n", name.c_str(), strerror(errno));
-      throw std::runtime_error("Failed to create or attach shared memory!");
+      throw std::runtime_error("[SharedMemoryData] fstat failed: " + std::string(strerror(errno)));
     }
-    if ((size_t)s.st_size != size_) throw std::runtime_error("[Shared Memory] Existing shared memory size mismatch!\n");
+    if ((size_t)s.st_size != size_) {
+      throw std::runtime_error("[SharedMemoryData] Existing shared memory size mismatch!");
+    }
+  }
+
+  // 如果共享内存不存在, create it
+  if (fd_ == -1 && errno == ENOENT) {
+    fd_ = shm_open(name.c_str(), O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
+    if (fd_ == -1) {
+      throw std::runtime_error("[SharedMemoryData] Failed to create shared memory: " + std::string(strerror(errno)));
+    }
+    // 设置共享内存大小
+    if (ftruncate(fd_, size_) != 0) {
+      throw std::runtime_error("[SharedMemoryData] ftruncate failed: " + std::string(strerror(errno)));
+    }
+    is_create = true;
   }
 
   // 映射共享内存
   void* mem = mmap(nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
   if (mem == MAP_FAILED) {
-    printf("[ERROR] SharedMemoryManager::Init(%s) mmap fail: %s\n", name.c_str(), strerror(errno));
-    throw std::runtime_error("Failed to create or attach shared memory!");
+    throw std::runtime_error("[SharedMemoryData] mmap failed: " + std::string(strerror(errno)));
   }
   // 清零共享内存
-  if (is_create) memset(mem, 0, size_);
+  if (is_create) {
+    memset(mem, 0, size_);
+  }
 
-  data_ = (uint8_t*)mem;
+  data_ = static_cast<uint8_t*>(mem);
 }
 
 /*!
@@ -160,25 +187,19 @@ void SharedMemoryData::CloseExisting() {
   sem_.Destroy();
   assert(data_);
   // 首先，解除映射
-  if (munmap((void*)data_, size_)) {
-    printf("[ERROR] SharedMemoryManager::closeExisting (%s) munmap %s\n", name_.c_str(), strerror(errno));
-    throw std::runtime_error("Failed to create or attach shared memory!");
-    return;
+  if (munmap(static_cast<void*>(data_), size_) != 0) {
+    throw std::runtime_error("[SharedMemoryData::CloseExisting] munmap failed: " + std::string(strerror(errno)));
   }
 
   data_ = nullptr;
 
-  if (shm_unlink(name_.c_str())) {
-    printf("[ERROR] SharedMemoryManager::closeExisting (%s) shm_unlink %s\n", name_.c_str(), strerror(errno));
-    throw std::runtime_error("Failed to create or attach shared memory!");
-    return;
+  if (shm_unlink(name_.c_str()) != 0) {
+    throw std::runtime_error("[SharedMemoryData::CloseExisting] shm_unlink failed: " + std::string(strerror(errno)));
   }
 
   // 关闭文件描述符
-  if (close(fd_)) {
-    printf("[ERROR] SharedMemoryManager::closeExisting (%s) close %s\n", name_.c_str(), strerror(errno));
-    throw std::runtime_error("Failed to create or attach shared memory!");
-    return;
+  if (close(fd_) != 0) {
+    throw std::runtime_error("[SharedMemoryData::CloseExisting] close failed: " + std::string(strerror(errno)));
   }
 
   fd_ = 0;
@@ -192,19 +213,15 @@ void SharedMemoryData::CloseExisting() {
 void SharedMemoryData::Detach() {
   assert(data_);
   // 首先，解除映射
-  if (munmap((void*)data_, size_)) {
-    printf("[ERROR] SharedMemoryManager::detach (%s) munmap %s\n", name_.c_str(), strerror(errno));
-    throw std::runtime_error("Failed to create or attach shared memory!");
-    return;
+  if (munmap(static_cast<void*>(data_), size_) != 0) {
+    throw std::runtime_error("[SharedMemoryData::Detach] munmap failed: " + std::string(strerror(errno)));
   }
 
   data_ = nullptr;
 
   // 关闭文件描述符
-  if (close(fd_)) {
-    printf("[ERROR] SharedMemoryManager::detach (%s) close %s\n", name_.c_str(), strerror(errno));
-    throw std::runtime_error("Failed to create or attach shared memory!");
-    return;
+  if (close(fd_) != 0) {
+    throw std::runtime_error("[SharedMemoryData::Detach] close failed: " + std::string(strerror(errno)));
   }
 
   fd_ = 0;
@@ -219,6 +236,7 @@ uint8_t* SharedMemoryData::Get() {
 }
 
 void SharedMemoryData::Lock() { sem_.Decrement(); }
+
 void SharedMemoryData::UnLock() { sem_.Increment(); }
 
 }  // namespace openrobot::ocm

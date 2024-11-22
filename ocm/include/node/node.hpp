@@ -6,7 +6,7 @@ namespace openrobot::ocm {
 
 class NodeBase {
  public:
-  NodeBase() { state_.store(NodeState::INIT); }
+  NodeBase(const std::string& node_name) : node_name_(node_name) { state_.store(NodeState::INIT); }
   NodeBase& operator=(const NodeBase&) = delete;
   NodeBase(NodeBase&&) = delete;
   virtual ~NodeBase() = default;
@@ -27,8 +27,10 @@ class NodeBase {
     return TryExit();
   }
   NodeState GetState() const { return state_.load(); }
+  const std::string& GetNodeName() const { return node_name_; }
 
- protected:
+ private:
+  std::string node_name_;
   void SetState(NodeState state) { state_.store(state); }
   std::atomic<NodeState> state_;
 };

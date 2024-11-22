@@ -6,51 +6,53 @@ executer_setting:
     priority: 50
     executer_cpu_affinity: [0]
     idle_task_cpu_affinity: [0]
+    all_priority_enable: false
+    all_cpu_affinity_enable: false
 
 #--------------------------------------
 task_list:
   #--------------------------------------
   resident_group:
-    # --------------------------------------
-    - task_name: "NodeA"
-      node_list:
-        - node_name: "NodeA"
-          output_enable: True
-      timer_setting:
-        timer_type: "INTERNAL_TIMER"
-        period: 1
-      system_setting:
-        priority: 50
-        cpu_affinity: [0]
-      launch_setting:
-        pre_node: []
-        delay: 0
-    # --------------------------------------
-    - task_name: "NodeB"
-      node_list:
-        - node_name: "NodeB"
-          output_enable: True
-      timer_setting:
-        timer_type: "INTERNAL_TIMER"
-        period: 1
-      system_setting:
-        priority: 50
-        cpu_affinity: [0]
-      launch_setting:
-        pre_node: ["NodeA"]
-        delay: 0
+    # # --------------------------------------
+    # - task_name: "NodeA"
+    #   node_list:
+    #     - node_name: "NodeA"
+    #       output_enable: True
+    #   timer_setting:
+    #     timer_type: "INTERNAL_TIMER"
+    #     period: 1
+    #   system_setting:
+    #     priority: 50
+    #     cpu_affinity: [0]
+    #   launch_setting:
+    #     pre_node: []
+    #     delay: 0
+    # # --------------------------------------
+    # - task_name: "NodeB"
+    #   node_list:
+    #     - node_name: "NodeB"
+    #       output_enable: True
+    #   timer_setting:
+    #     timer_type: "INTERNAL_TIMER"
+    #     period: 1
+    #   system_setting:
+    #     priority: 50
+    #     cpu_affinity: [0]
+    #   launch_setting:
+    #     pre_node: ["NodeA"]
+    #     delay: 0
 
   #--------------------------------------
   standby_group:
     # --------------------------------------
     - task_name: "TASK1"
       node_list:
-        - node_name: "NodeC"
+        - node_name: "NodeA"
           output_enable: True
-        - node_name: "NodeD"
+        - node_name: "NodeB"
           output_enable: True
       timer_setting:
-        timer_type: "EXTERNAL_TIMER"
+        timer_type: "INTERNAL_TIMER"
         period: 1
       system_setting:
         period: 0
@@ -60,10 +62,25 @@ task_list:
     # --------------------------------------
     - task_name: "TASK2"
       node_list:
-        - node_name: "NodeE"
+        - node_name: "NodeC"
           output_enable: True
       timer_setting:
-        timer_type: "EXTERNAL_TIMER"
+        timer_type: "INTERNAL_TIMER"
+        period: 1
+      system_setting:
+        period: 0
+        priority: 50
+        cpu_affinity: [0]
+
+    # --------------------------------------
+    - task_name: "TASK3"
+      node_list:
+        - node_name: "NodeC"
+          output_enable: True
+        - node_name: "NodeD"
+          output_enable: True
+      timer_setting:
+        timer_type: "INTERNAL_TIMER"
         period: 1
       system_setting:
         period: 0
@@ -72,7 +89,7 @@ task_list:
 
 exclusive_task_group:
   #--------------------------------------
-  - group_name: "resident_group"
+  - group_name: "passive"
     task_list:
       # --------------------------------------
       - task_name: "TASK1"
@@ -80,5 +97,12 @@ exclusive_task_group:
         pre_node: []
       # --------------------------------------
       - task_name: "TASK2"
+        force_init_node: []
+        pre_node: []
+
+  - group_name: "pdstand"
+    task_list:
+      # --------------------------------------
+      - task_name: "TASK3"
         force_init_node: []
         pre_node: []
