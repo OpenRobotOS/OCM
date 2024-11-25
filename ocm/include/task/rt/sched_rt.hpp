@@ -9,7 +9,9 @@
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <set>
 #include <string>
+#include <vector>
 
 namespace openrobot::ocm::rt {
 
@@ -79,20 +81,38 @@ inline int set_thread_priority(const pid_t pid, size_t const sched_priority, con
   return sched_setscheduler(pid, policy, &param);
 }
 
-inline int set_thread_cpu_affinity(const pid_t pid, uint32_t cpu_bit_mask) {
+// 设置线程 CPU 亲和性
+inline int set_thread_cpu_affinity(const pid_t pid, const std::vector<int>& cpu_list) {
   cpu_set_t set;
-  uint32_t cpu_cnt = 0U;
   CPU_ZERO(&set);
-  while (cpu_bit_mask > 0U) {
-    if ((cpu_bit_mask & 0x1U) > 0) {
-      CPU_SET(cpu_cnt, &set);
-    }
-    cpu_bit_mask = (cpu_bit_mask >> 1U);
-    cpu_cnt++;
-  }
-  return sched_setaffinity(pid, sizeof(set), &set);
-}
 
+  // 获取系统可用的 CPU 数量
+  long num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+  if (num_cpus == -1) {
+    perror("sysconf");
+    return -1;
+  }
+
+  // 使用 std::set 来自动处理重复值
+  std::set<int> unique_cpus(cpu_list.begin(), cpu_list.end());
+
+  for (const int cpu : unique_cpus) {
+    // 检查 CPU 编号是否在有效范围内
+    if (cpu < 0 || cpu >= num_cpus) {
+      fprintf(stderr, "无效的 CPU 编号: %d\n", cpu);
+      return -1;
+    }
+    CPU_SET(cpu, &set);
+  }
+
+  // 设置 CPU 亲和性
+  if (sched_setaffinity(pid, sizeof(set), &set) == -1) {
+    perror("sched_setaffinity");
+    return -1;
+  }
+
+  return 0;
+}
 inline void set_thread_name(const std::string& name) {
   const auto iErr = prctl(PR_SET_NAME, name.c_str());
   (void)iErr;

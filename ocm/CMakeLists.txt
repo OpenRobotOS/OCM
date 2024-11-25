@@ -55,7 +55,8 @@ add_compile_options(-no-pie -fPIC -O3 -march=native)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-add_library(OCM SHARED src/ocm.cpp src/task.cpp src/log_anywhere.cpp)
+file(GLOB_RECURSE OCM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+add_library(OCM SHARED ${OCM_SOURCES})
 
 # 1. 指定头文件路径
 target_include_directories(

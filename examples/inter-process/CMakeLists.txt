@@ -1,24 +1,22 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(UsingOCMExample LANGUAGES CXX)
+project(InterProcess LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH "/opt/openrobotlib" CACHE PATH "Default prefix path" FORCE)
-endif()
+# 追加新的路径到 CMAKE_PREFIX_PATH
+set(CMAKE_PREFIX_PATH "/opt/openrobotlib/ocm" "/opt/openrobotlib/third_party")
+# 输出 CMAKE_PREFIX_PATH 进行调试
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 # 查找 OCM 包
 find_package(OCM REQUIRED)
-find_package(lcm REQUIRED)
-include(${LCM_USE_FILE})
 
 # 添加可执行文件
-add_executable(shm shm.cpp)
-# add_executable(RWLockData RWLockData.cpp)
-
+add_executable(publish publish.cpp)
+add_executable(subscribe subscribe.cpp)
 
 # 链接 OCM 库
-target_link_libraries(shm PRIVATE OPENROBOT::OCM ${LCM_NAMESPACE}lcm)
-# target_link_libraries(RWLockData PRIVATE OPENROBOT::OCM)
+target_link_libraries(publish PUBLIC OPENROBOT::OCM)
+target_link_libraries(subscribe PUBLIC OPENROBOT::OCM)

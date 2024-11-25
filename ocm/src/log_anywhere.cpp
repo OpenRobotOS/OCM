@@ -1,46 +1,71 @@
+// log_anywhere.cpp
 #include "log_anywhere/log_anywhere.hpp"
+
 #include <spdlog/common.h>
 #include <filesystem>
 #include <iostream>
+#include <vector>
 
 namespace openrobot::ocm {
 
-// 构造函数，接受配置参数
+// Constructor Implementation
+/**
+ * @brief Constructs a LogAnywhere instance with the specified configuration.
+ *
+ * This constructor initializes the spdlog asynchronous logger with both file and console sinks.
+ * It sets the logging level to trace, defines the log message pattern, and ensures that the
+ * log directory exists. It also registers the logger globally for easy access.
+ *
+ * @param config Configuration settings for the logger, including log file path, queue size, and thread count.
+ *
+ * @note If logger initialization fails, an error message is printed to the standard error stream.
+ */
 LogAnywhere::LogAnywhere(const LoggerConfig& config) {
   try {
-    // 确保日志目录存在
+    // Ensure that the log directory exists
     std::filesystem::create_directories(std::filesystem::path(config.log_file).parent_path());
 
-    // 初始化线程池，队列大小和线程数由配置决定
+    // Initialize the spdlog thread pool with the specified queue size and thread count
     spdlog::init_thread_pool(config.queue_size, config.thread_count);
 
-    // 创建多个 sink：文件和控制台
+    // Create sinks for file and console logging
     std::vector<spdlog::sink_ptr> sinks;
-    sinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(config.log_file, true));
-    sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+    sinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(config.log_file, true));  // File sink
+    sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());                     // Console sink
 
-    // 创建异步日志器
+    // Create an asynchronous logger with the specified sinks and thread pool
     logger_ = std::make_shared<spdlog::async_logger>("openrobot_ocm_logger", sinks.begin(), sinks.end(), spdlog::thread_pool(),
                                                      spdlog::async_overflow_policy::block);
 
-    // 设置日志级别和格式
-    logger_->set_level(spdlog::level::trace);  // 设置最低日志级别
+    // Set logging level to trace (captures all log levels)
+    logger_->set_level(spdlog::level::trace);
+
+    // Define the log message pattern: [Time][ColorLevel] Message
     logger_->set_pattern("[%T][%^%l%$] %v");
+
+    // Flush logs on info level and above to ensure important messages are written promptly
     logger_->flush_on(spdlog::level::info);
-    // 注册到 spdlog 的全局注册表（可选）
+
+    // Register the logger globally for easy access via spdlog::get()
     spdlog::register_logger(logger_);
 
-    // 添加测试日志
-    logger_->info("LogAnywhere 初始化成功。");
+    // Log a successful initialization message
+    logger_->info("LogAnywhere initialized successfully.");
   } catch (const spdlog::spdlog_ex& ex) {
-    // 处理初始化失败的情况
+    // Handle initialization failure by outputting an error message to standard error
     std::cerr << "LogAnywhere initialization failed: " << ex.what() << std::endl;
   }
 }
 
-// 析构函数
+// Destructor Implementation
+/**
+ * @brief Destructs the LogAnywhere instance.
+ *
+ * Ensures that the spdlog logger is properly shut down, flushing all pending log messages
+ * and releasing resources.
+ */
 LogAnywhere::~LogAnywhere() {
-  // 在程序结束时，确保日志器被正确关闭
+  // Shutdown spdlog to ensure all logs are flushed and resources are released
   spdlog::shutdown();
 }
 

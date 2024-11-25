@@ -1,7 +1,9 @@
 #include "executer/executer.hpp"
 #include <common/struct_type.hpp>
 #include <memory>
+#include <ocm/ocm.hpp>
 #include "common/enum.hpp"
+#include "executer/desired_group_data.hpp"
 #include "log_anywhere/log_anywhere.hpp"
 #include "node/node_map.hpp"
 #include "node_test.hpp"
@@ -11,19 +13,28 @@ using namespace openrobot::ocm;
 
 class TaskTimer : public openrobot::ocm::TaskBase {
  public:
-  TaskTimer()
-      : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0),
-        sem_("OPENROBOT_OCM_SEM_TIMING_GENERATOR", 0),
-        shm_("OPENROBOT_OCM_SHM_TIMING_GENERATOR_DT", sizeof(uint8_t)) {
-    shm_.Lock();
-    *shm_.Get() = 1;  // ms
-    shm_.UnLock();
+  TaskTimer() : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0, false, false) {
+    std::vector<std::string> sem_name_list = {"executer", "resident_task_1", "standby_task_1", "standby_task_2", "standby_task_3"};
+    for (const auto& sem_name : sem_name_list) {
+      sem_.emplace_back(SharedMemorySemaphore(sem_name, 0));
+      shm_.emplace_back(SharedMemoryData<uint8_t>(sem_name, true, sizeof(uint8_t)));
+    }
+    for (auto& shm : shm_) {
+      shm.Lock();
+      *shm.Get() = 1;  // ms
+      shm.UnLock();
+    }
   }
-  void Run() override { sem_.IncrementWhenZero(); }
+  ~TaskTimer() = default;
+  void Run() override {
+    for (auto& sem : sem_) {
+      sem.IncrementWhenZero();
+    }
+  }
 
  private:
-  openrobot::ocm::SharedMemorySemaphore sem_;
-  openrobot::ocm::SharedMemoryData shm_;
+  std::vector<openrobot::ocm::SharedMemorySemaphore> sem_;
+  std::vector<openrobot::ocm::SharedMemoryData<uint8_t>> shm_;
 };
 
 int main() {
@@ -31,15 +42,18 @@ int main() {
   log_config.log_file = "my_logs/executer_test.log";
   log_config.queue_size = 8192;  // 可选，默认8192
   log_config.thread_count = 1;   // 可选，默认1
-  auto logger = std::make_shared<openrobot::ocm::LogAnywhere>(log_config);
-  logger->logger_->set_level(spdlog::level::trace);
+  auto logger_generator = std::make_shared<openrobot::ocm::LogAnywhere>(log_config);
+  auto logger = GetLogger();
 
   TaskTimer timer_task;
   timer_task.SetPeriod(0.001);
-  timer_task.TaskStart();
+  SystemSetting timer_system_setting;
+  timer_system_setting.priority = 0;
+  timer_system_setting.cpu_affinity = {0};
+  timer_task.TaskStart(timer_system_setting);
+
   ConfigCollect& config = ConfigCollect::getInstance();
   config.update_from_yaml_all("/home/lizhen/works/code/OpenRobot/OCM/examples/executer/yaml_template/task");
-  // config.print();
 
   std::shared_ptr<NodeMap> node_map = std::make_shared<NodeMap>();
   node_map->AddNode("NodeA", std::make_shared<NodeA>("NodeA"));
@@ -53,13 +67,11 @@ int main() {
   const auto& task_list = config.get_task_config().TaskList();
   const auto& exclusive_task_group = config.get_task_config().ExclusiveTaskGroup();
 
-  executer_config.executer_setting.package_name = "executer_test";
-  executer_config.executer_setting.sem_name = "OPENROBOT_OCM_SEM_TIMING_GENERATOR";
+  executer_config.executer_setting.package_name = "executer";
   executer_config.executer_setting.timer_setting.timer_type = timer_type_map.at(executer_setting.TimerSetting().TimerType());
   executer_config.executer_setting.timer_setting.period = executer_setting.TimerSetting().Period();
-  executer_config.executer_setting.system_setting.priority = executer_setting.SystemSetting().Priority();
-  executer_config.executer_setting.system_setting.executer_cpu_affinity = executer_setting.SystemSetting().ExecuterCpuAffinity();
-  executer_config.executer_setting.system_setting.idle_task_cpu_affinity = executer_setting.SystemSetting().IdleTaskCpuAffinity();
+  executer_config.executer_setting.system_setting.priority = static_cast<int>(executer_setting.SystemSetting().Priority());
+  // executer_config.executer_setting.system_setting.cpu_affinity = executer_setting.SystemSetting().ExecuterCpuAffinity();
 
   for (const auto& task : task_list.ResidentGroup()) {
     TaskSetting task_setting;
@@ -67,7 +79,7 @@ int main() {
     task_setting.timer_setting.timer_type = timer_type_map.at(task.TimerSetting().TimerType());
     task_setting.timer_setting.period = task.TimerSetting().Period();
     task_setting.system_setting.priority = task.SystemSetting().Priority();
-    task_setting.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
+    // task_setting.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
     task_setting.launch_setting.pre_node = task.LaunchSetting().PreNode();
     task_setting.launch_setting.delay = task.LaunchSetting().Delay();
     for (const auto& node : task.NodeList()) {
@@ -85,7 +97,7 @@ int main() {
     task_setting.timer_setting.timer_type = timer_type_map.at(task.TimerSetting().TimerType());
     task_setting.timer_setting.period = task.TimerSetting().Period();
     task_setting.system_setting.priority = task.SystemSetting().Priority();
-    task_setting.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
+    // task_setting.system_setting.cpu_affinity = task.SystemSetting().CpuAffinity();
     for (const auto& node : task.NodeList()) {
       NodeConfig node_config;
       node_config.node_name = node.NodeName();
@@ -111,14 +123,20 @@ int main() {
   Executer executer(executer_config, node_map);
   executer.CreateTask();
   executer.InitTask();
-  std::this_thread::sleep_for(std::chrono::seconds(2));
-  executer.desired_group_ = "passive";
+  SharedMemoryTopic desired_group_topic;
+  DesiredGroupData desired_group_data;
+  desired_group_data.desired_group = "passive";
+  desired_group_topic.Publish("executer_desired_group", "executer_desired_group", &desired_group_data);
   std::this_thread::sleep_for(std::chrono::seconds(3));
-  executer.desired_group_ = "pdstand";
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
+  desired_group_data.desired_group = "pdstand";
+  desired_group_topic.Publish("executer_desired_group", "executer_desired_group", &desired_group_data);
+  std::this_thread::sleep_for(std::chrono::seconds(3));
   std::cout << "executer exit" << std::endl;
+  timer_task.TaskDestroy();
+  std::cout << "timer_task destroyed" << std::endl;
+  executer.ExitAllTask();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   executer.TaskDestroy();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   return 0;
 }
