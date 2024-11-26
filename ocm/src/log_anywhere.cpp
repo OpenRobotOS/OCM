@@ -1,4 +1,4 @@
-// log_anywhere.cpp
+// Start of Selection
 #include "log_anywhere/log_anywhere.hpp"
 
 #include <spdlog/common.h>
@@ -11,14 +11,19 @@ namespace openrobot::ocm {
 // Constructor Implementation
 /**
  * @brief Constructs a LogAnywhere instance with the specified configuration.
+ * @brief 使用指定配置构造一个 LogAnywhere 实例。
  *
  * This constructor initializes the spdlog asynchronous logger with both file and console sinks.
+ * 此构造函数使用文件和控制台接收器初始化 spdlog 异步记录器。
  * It sets the logging level to trace, defines the log message pattern, and ensures that the
  * log directory exists. It also registers the logger globally for easy access.
+ * 它将日志级别设置为 trace，定义日志消息模式，并确保日志目录存在。它还全局注册记录器以便轻松访问。
  *
  * @param config Configuration settings for the logger, including log file path, queue size, and thread count.
+ * @param config 记录器的配置设置，包括日志文件路径、队列大小和线程数量。
  *
  * @note If logger initialization fails, an error message is printed to the standard error stream.
+ * @note 如果记录器初始化失败，将错误消息打印到标准错误流。
  */
 LogAnywhere::LogAnywhere(const LoggerConfig& config) {
   try {
@@ -60,9 +65,11 @@ LogAnywhere::LogAnywhere(const LoggerConfig& config) {
 // Destructor Implementation
 /**
  * @brief Destructs the LogAnywhere instance.
+ * @brief 析构 LogAnywhere 实例。
  *
  * Ensures that the spdlog logger is properly shut down, flushing all pending log messages
  * and releasing resources.
+ * 确保 spdlog 记录器被正确关闭，刷新所有待处理的日志消息并释放资源。
  */
 LogAnywhere::~LogAnywhere() {
   // Shutdown spdlog to ensure all logs are flushed and resources are released
@@ -70,3 +77,4 @@ LogAnywhere::~LogAnywhere() {
 }
 
 }  // namespace openrobot::ocm
+// End of Selection

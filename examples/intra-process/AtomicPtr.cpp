@@ -1,6 +1,6 @@
 #include <iostream>
-#include <ocm/ocm.hpp>
 #include <thread>
+#include "ocm/atomic_ptr.hpp"
 
 // 示例函数，使用AtomicPtr修改数据
 void UpdateData(openrobot::ocm::AtomicPtr<int>& atomicPtr) {

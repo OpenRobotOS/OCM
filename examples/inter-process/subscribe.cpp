@@ -1,6 +1,6 @@
 #include <iostream>
 #include "MyData.hpp"
-#include "ocm/ocm.hpp"
+#include "ocm/shared_memory_topic.hpp"
 
 using namespace openrobot::ocm;
 

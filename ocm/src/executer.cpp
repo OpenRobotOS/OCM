@@ -1,4 +1,4 @@
-// executer.cpp
+// Start of Selection
 #include "executer/executer.hpp"
 
 #include <algorithm>
@@ -11,12 +11,18 @@ namespace openrobot::ocm {
 // Constructor Implementation
 /**
  * @brief Constructs an Executer instance with the given configuration and node map.
+ * @brief 使用给定的配置和节点映射构造一个 Executer 实例。
  *
  * Initializes the base TaskBase class, sets up the logger, configures the timer period,
  * and starts the task using the provided system settings.
+ * 初始化基类 TaskBase 类，设置日志记录器，配置定时器周期，并使用提供的系统设置启动任务。
  *
  * @param executer_config Configuration settings for the Executer.
+ * @param executer_config Executer 的配置设置。
  * @param node_map Shared pointer to the NodeMap for retrieving node pointers.
+ * @param node_map 用于检索节点指针的 NodeMap 的共享指针。
+ * @param desired_group_topic_name Name of the desired group topic.
+ * @param desired_group_topic_name 期望组主题的名称。
  */
 Executer::Executer(const ExecuterConfig& executer_config, const std::shared_ptr<NodeMap>& node_map, const std::string& desired_group_topic_name)
     : TaskBase(executer_config.executer_setting.package_name, executer_config.executer_setting.timer_setting.timer_type, 0.0,
@@ -49,10 +55,12 @@ Executer::Executer(const ExecuterConfig& executer_config, const std::shared_ptr<
 
 /**
  * @brief Exits all tasks gracefully by stopping and destroying them.
+ * @brief 通过停止和销毁所有任务来优雅地退出。
  *
  * Iterates through both resident and standby task lists, stopping each task with idle system settings
  * and then destroying the task instance. Introduces a brief sleep to ensure all tasks have been
  * properly terminated.
+ * 遍历驻留和待命任务列表，使用空闲系统设置停止每个任务，然后销毁任务实例。引入短暂的休眠以确保所有任务已正确终止。
  */
 void Executer::ExitAllTask() {
   // Stop and destroy all tasks in the resident group
@@ -74,10 +82,13 @@ void Executer::ExitAllTask() {
 // CreateTask Method Implementation
 /**
  * @brief Creates tasks for both resident and standby groups based on the configuration.
+ * @brief 根据配置为驻留组和待命组创建任务。
  *
  * For each task in the resident and standby groups, retrieves the associated nodes from the NodeMap,
  * initializes a Task instance, and adds it to the respective task list. Also logs the addition
  * of each task and populates the set of exclusive task groups.
+ * 对于驻留组和待命组中的每个任务，从 NodeMap 中检索相关节点，初始化 Task
+ * 实例，并将其添加到相应的任务列表。还记录每个任务的添加并填充独占任务组的集合。
  */
 void Executer::CreateTask() {
   // Create tasks for the resident group
@@ -128,10 +139,12 @@ void Executer::CreateTask() {
 // InitTask Method Implementation
 /**
  * @brief Initializes all tasks in the resident group, ensuring that pre-requisite nodes are ready.
+ * @brief 初始化驻留组中的所有任务，确保前置节点已准备就绪。
  *
  * For each task in the resident group, checks if all pre-nodes are running or if there are no pre-nodes.
  * If the conditions are met, initializes and starts the task. Continues this process until all tasks
  * have been successfully started.
+ * 对驻留组中的每个任务，检查所有前置节点是否正在运行或是否没有前置节点。如果满足条件，初始化并启动任务。继续此过程，直到所有任务成功启动。
  */
 void Executer::InitTask() {
   // Vector to hold tasks waiting to start, along with a flag indicating if they've been started
@@ -175,9 +188,11 @@ void Executer::InitTask() {
 // Run Method Implementation
 /**
  * @brief Executes the main run loop for the Executer.
+ * @brief 执行 Executer 的主运行循环。
  *
  * This method is called periodically based on the configured timer period. It checks for any
  * required transitions between task groups and handles them accordingly.
+ * 此方法根据配置的定时器周期定期调用。它检查任务组之间是否需要任何过渡，并相应地处理它们。
  */
 void Executer::Run() {
   desired_group_topic_->SubscribeNoWait<DesiredGroupData>(
@@ -192,13 +207,14 @@ void Executer::Run() {
   }
 }
 
-// TransitionCheck Method Implementation
 /**
  * @brief Checks if a transition between task groups is required.
+ * @brief 检查任务组之间是否需要过渡。
  *
  * Determines whether the desired task group differs from the current group. If a transition is needed
  * and the desired group is an exclusive group, prepares the necessary sets and flags to handle the transition.
  * Logs an error if the desired group is not exclusive.
+ * 确定期望的任务组是否与当前组不同。如果需要过渡且期望的组是独占组，则准备必要的集合和标志以处理过渡。如果期望的组不是独占组，则记录错误。
  */
 void Executer::TransitionCheck() {
   if (!is_transition_) {
@@ -271,10 +287,12 @@ void Executer::TransitionCheck() {
 // Transition Method Implementation
 /**
  * @brief Handles the transition between task groups.
+ * @brief 处理任务组之间的过渡。
  *
  * Manages the stopping of current tasks, starting of target tasks, and updating of the current group.
  * Ensures that all nodes have exited and entered as required before completing the transition.
  * Logs the transition details and updates internal state flags accordingly.
+ * 管理当前任务的停止，目标任务的启动以及当前组的更新。确保所有节点在完成过渡之前已按要求退出和进入。记录过渡细节并相应地更新内部状态标志。
  */
 void Executer::Transition() {
   if (all_node_exit_check_ && all_node_enter_check_) {
@@ -354,3 +372,4 @@ void Executer::Transition() {
 }
 
 }  // namespace openrobot::ocm
+// End of Selection
