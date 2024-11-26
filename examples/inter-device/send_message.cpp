@@ -1,44 +1,40 @@
-// file: send_message.cpp
-//
-// LCM example program.
-//
-// compile with:
-//  $ g++ -o send_message send_message.cpp -llcm
-//
-// On a system with pkg-config, you can also use:
-//  $ g++ -o send_message send_message.cpp `pkg-config --cflags --libs lcm`
-
 #include <lcm/lcm-cpp.hpp>
 
 #include "exlcm/example_t.hpp"
 
-int main(int argc, char **argv)
-{
-    lcm::LCM lcm;
-    if (!lcm.good())
-        return 1;
+int main(int argc, char **argv) {
+  // 创建LCM实例
+  lcm::LCM lcm;
 
-    exlcm::example_t my_data;
-    my_data.timestamp = 0;
+  // 检查LCM是否正常工作
+  if (!lcm.good()) return 1;
 
-    my_data.position[0] = 1;
-    my_data.position[1] = 2;
-    my_data.position[2] = 3;
+  // 创建要发送的消息数据
+  exlcm::example_t my_data;
+  my_data.timestamp = 0;  // 设置时间戳
 
-    my_data.orientation[0] = 1;
-    my_data.orientation[1] = 0;
-    my_data.orientation[2] = 0;
-    my_data.orientation[3] = 0;
+  // 设置位置信息
+  my_data.position[0] = 1;
+  my_data.position[1] = 2;
+  my_data.position[2] = 3;
 
-    my_data.num_ranges = 15;
-    my_data.ranges.resize(my_data.num_ranges);
-    for (int i = 0; i < my_data.num_ranges; i++)
-        my_data.ranges[i] = i;
+  // 设置朝向信息（四元数表示）
+  my_data.orientation[0] = 1;
+  my_data.orientation[1] = 0;
+  my_data.orientation[2] = 0;
+  my_data.orientation[3] = 0;
 
-    my_data.name = "example string";
-    my_data.enabled = true;
+  // 设置距离数据
+  my_data.num_ranges = 15;                                             // 距离数据的数量
+  my_data.ranges.resize(my_data.num_ranges);                           // 调整大小
+  for (int i = 0; i < my_data.num_ranges; i++) my_data.ranges[i] = i;  // 填充距离数据
 
-    lcm.publish("EXAMPLE", &my_data);
+  // 设置名称和启用状态
+  my_data.name = "example string";  // 设置名称
+  my_data.enabled = true;           // 设置启用状态
 
-    return 0;
+  // 发布消息到"EXAMPLE"频道
+  lcm.publish("EXAMPLE", &my_data);
+
+  return 0;  // 程序结束
 }

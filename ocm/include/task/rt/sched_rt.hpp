@@ -15,6 +15,11 @@
 
 namespace openrobot::ocm::rt {
 
+/**
+ * @brief Scheduling policies definitions.
+ *
+ * Defines various scheduling policies used for setting thread priorities and behaviors.
+ */
 #define SCHED_OTHER 0
 #define SCHED_FIFO 1
 #define SCHED_RR 2
@@ -42,38 +47,88 @@ namespace openrobot::ocm::rt {
   #endif
 #endif
 
+/**
+ * @brief Scheduling flags definitions.
+ *
+ * Defines various flags used in scheduling attributes.
+ */
 #define SF_SIG_RORUN 2
 #define SF_SIG_DMISS 4
 #define SF_BWRECL_DL 8
 #define SF_BWRECL_RT 16
 #define SF_BWRECL_OTH 32
 
+/**
+ * @brief Resource limit constants.
+ *
+ * Defines resource limit constants for deadline and real-time time.
+ */
 #define RLIMIT_DLDLINE 16
 #define RLIMIT_DLRTIME 17
-struct sched_attr_t {
-  __u32 size;
 
-  __u32 sched_policy;
-  __u64 sched_flags;
+/**
+ * @brief Structure representing scheduling attributes.
+ *
+ * The `sched_attr_t` structure is used to specify various scheduling parameters for a thread or process.
+ */
+struct sched_attr_t {
+  __u32 size; /**< Size of the structure */
+
+  __u32 sched_policy; /**< Scheduling policy */
+  __u64 sched_flags;  /**< Scheduling flags */
 
   /* SCHED_NORMAL, SCHED_BATCH */
-  __s32 sched_nice;
+  __s32 sched_nice; /**< Nice value */
 
   /* SCHED_FIFO, SCHED_RR */
-  __u32 sched_priority;
+  __u32 sched_priority; /**< Scheduling priority */
 
   /* SCHED_DEADLINE */
-  __u64 sched_runtime;
-  __u64 sched_deadline;
-  __u64 sched_period;
+  __u64 sched_runtime;  /**< Runtime for deadline scheduling */
+  __u64 sched_deadline; /**< Deadline for deadline scheduling */
+  __u64 sched_period;   /**< Period for deadline scheduling */
 };
 
+/**
+ * @brief Sets scheduling attributes for a thread or process.
+ *
+ * This function invokes the `sched_setattr` system call to set the scheduling attributes.
+ *
+ * @param pid Process ID of the thread to set attributes for. Use `0` for the calling thread.
+ * @param attr Pointer to the `sched_attr_t` structure containing the scheduling attributes.
+ * @param flags Flags for setting attributes.
+ *
+ * @return `0` on success, `-1` on failure with `errno` set appropriately.
+ */
 inline int sched_setattr(const pid_t pid, const sched_attr_t* attr, const unsigned int flags) { return syscall(SYS_sched_setattr, pid, attr, flags); }
 
+/**
+ * @brief Retrieves scheduling attributes for a thread or process.
+ *
+ * This function invokes the `sched_getattr` system call to get the scheduling attributes.
+ *
+ * @param pid Process ID of the thread to retrieve attributes for. Use `0` for the calling thread.
+ * @param attr Pointer to the `sched_attr_t` structure where the scheduling attributes will be stored.
+ * @param size Size of the `sched_attr_t` structure.
+ * @param flags Flags for retrieving attributes.
+ *
+ * @return `0` on success, `-1` on failure with `errno` set appropriately.
+ */
 inline int sched_getattr(const pid_t pid, sched_attr_t* attr, unsigned int size, const unsigned int flags) {
   return syscall(SYS_sched_getattr, pid, attr, size, flags);
 }
 
+/**
+ * @brief Sets the priority and scheduling policy of a thread.
+ *
+ * This function uses `sched_setscheduler` to set the scheduling policy and priority of a thread.
+ *
+ * @param pid Process ID of the thread to set priority for. Use `0` for the calling thread.
+ * @param sched_priority The scheduling priority to set.
+ * @param policy The scheduling policy to set (e.g., `SCHED_FIFO`, `SCHED_RR`).
+ *
+ * @return `0` on success, `-1` on failure with `errno` set appropriately.
+ */
 inline int set_thread_priority(const pid_t pid, size_t const sched_priority, const int policy) {
   struct sched_param param;
   memset(&param, 0, sizeof(param));
@@ -81,31 +136,42 @@ inline int set_thread_priority(const pid_t pid, size_t const sched_priority, con
   return sched_setscheduler(pid, policy, &param);
 }
 
-// 设置线程 CPU 亲和性
+/**
+ * @brief Sets the CPU affinity for a thread.
+ *
+ * This function sets the CPU affinity mask for the specified thread, restricting it to run only on the specified CPUs.
+ *
+ * @param pid Process ID of the thread to set CPU affinity for.
+ * @param cpu_list A vector of CPU indices to which the thread should be bound.
+ *
+ * @return `0` on success, `-1` on failure with `errno` set appropriately.
+ *
+ * @note The function ensures that CPU indices are unique and within the valid range.
+ */
 inline int set_thread_cpu_affinity(const pid_t pid, const std::vector<int>& cpu_list) {
   cpu_set_t set;
   CPU_ZERO(&set);
 
-  // 获取系统可用的 CPU 数量
+  // Get the number of available CPUs
   long num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
   if (num_cpus == -1) {
     perror("sysconf");
     return -1;
   }
 
-  // 使用 std::set 来自动处理重复值
+  // Use std::set to automatically handle duplicate values
   std::set<int> unique_cpus(cpu_list.begin(), cpu_list.end());
 
   for (const int cpu : unique_cpus) {
-    // 检查 CPU 编号是否在有效范围内
+    // Check if CPU index is within the valid range
     if (cpu < 0 || cpu >= num_cpus) {
-      fprintf(stderr, "无效的 CPU 编号: %d\n", cpu);
+      fprintf(stderr, "Invalid CPU index: %d\n", cpu);
       return -1;
     }
     CPU_SET(cpu, &set);
   }
 
-  // 设置 CPU 亲和性
+  // Set CPU affinity
   if (sched_setaffinity(pid, sizeof(set), &set) == -1) {
     perror("sched_setaffinity");
     return -1;
@@ -113,9 +179,19 @@ inline int set_thread_cpu_affinity(const pid_t pid, const std::vector<int>& cpu_
 
   return 0;
 }
+
+/**
+ * @brief Sets the name of the current thread.
+ *
+ * This function uses `prctl` to set the name of the calling thread. The name can be viewed using tools like `top` or `htop`.
+ *
+ * @param name The name to assign to the thread. It should not exceed 16 characters, including the null terminator.
+ *
+ * @note If the name exceeds the maximum allowed length, it will be truncated.
+ */
 inline void set_thread_name(const std::string& name) {
   const auto iErr = prctl(PR_SET_NAME, name.c_str());
-  (void)iErr;
+  (void)iErr;  // Suppress unused variable warning
 }
 
 }  // namespace openrobot::ocm::rt

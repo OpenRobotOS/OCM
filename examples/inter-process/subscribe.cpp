@@ -1,14 +1,25 @@
+#include <iostream>
 #include "MyData.hpp"
 #include "ocm/ocm.hpp"
 
 using namespace openrobot::ocm;
 
 int main() {
+  // 创建共享内存主题对象
   SharedMemoryTopic topic;
+
+  // 创建数据对象
   MyData data;
   int i;
+
+  // 持续订阅"topic1"频道上的数据，使用"shm1"作为共享内存名称
   while (true) {
-    topic.Subscribe<MyData>("topic1", "shm1", [](const MyData& msg) { std::cout << "Received data: " << msg.count << std::endl; });
+    // 订阅数据，并设置回调函数来处理收到的消息
+    topic.Subscribe<MyData>("topic1", "shm1", [](const MyData& msg) {
+      // 当接收到数据时，输出数据的count值
+      std::cout << "Received data: " << msg.count << std::endl;
+    });
   }
-  return 0;
+
+  return 0;  // 程序结束
 }

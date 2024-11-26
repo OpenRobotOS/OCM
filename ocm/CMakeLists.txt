@@ -51,12 +51,12 @@ find_package(lcm REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
-add_compile_options(-no-pie -fPIC -O3 -march=native)
+add_compile_options(-fPIC -O3 -march=native)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 file(GLOB_RECURSE OCM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-add_library(OCM SHARED ${OCM_SOURCES})
+add_library(OCM STATIC ${OCM_SOURCES})
 
 # 1. 指定头文件路径
 target_include_directories(

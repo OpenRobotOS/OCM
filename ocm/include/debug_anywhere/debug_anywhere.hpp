@@ -1,89 +1,163 @@
 // debug_anywhere.hpp
 #pragma once
 
+#include <atomic>
 #include <boost/lockfree/queue.hpp>
 #include <memory>
 #include <semaphore>
+#include <set>
+#include <string>
 #include <thread>
-#include <unordered_map>
+#include <vector>
 #include "DebugData.hpp"
 #include "common/ip_tool.hpp"
+#include "common/struct_type.hpp"
 #include "lcm/lcm-cpp.hpp"
-#include "ocm/ocm.hpp"
-#include "task/task_base.hpp"
+#include "task/rt/sched_rt.hpp"
 
 namespace openrobot::ocm {
+
+/**
+ * @brief Configuration settings for DebugAnywhereTask.
+ */
 struct DebugAnywhereConfig {
+  /** @brief IP address for the debug interface. */
   std::string ip;
+
+  /** @brief Port number for the debug interface. */
   std::string port;
+
+  /** @brief Time-to-live (TTL) value for multicast packets. */
   std::string ttl;
+
+  /** @brief Flag to enable or disable the debug functionality. */
+  bool enable;
+
+  /** @brief Flag to enable all priority settings. */
+  bool all_priority_enable;
+
+  /** @brief Flag to enable all CPU affinity settings. */
+  bool all_cpu_affinity_enable;
+
+  /** @brief System settings related to real-time scheduling. */
+  SystemSetting system_setting;
+
+  /** @brief Flag to enable the white list filtering. */
+  bool white_list_enable;
+
+  /** @brief Set of channels that are allowed when white list is enabled. */
+  std::set<std::string> white_list;
 };
+
+/**
+ * @brief Structure to hold debug data associated with a specific topic.
+ */
 struct DebugDataStruct {
+  /** @brief The topic name for the debug data. */
   std::string topic;
+
+  /** @brief Vector of double values representing the debug data. */
   std::vector<double> data;
 
-  DebugDataStruct(const std::string& t, const std::vector<double>& v) : topic(t), data(v) {}
+  /**
+   * @brief Constructs a DebugDataStruct with the given topic and data.
+   * @param t The topic name.
+   * @param v The vector of data values.
+   */
+  DebugDataStruct(const std::string& t, const std::vector<double>& v);
 };
 
+/**
+ * @brief Task responsible for handling debug data publishing.
+ */
 class DebugAnywhereTask {
  public:
-  DebugAnywhereTask(const DebugAnywhereConfig& config) : config_(config), data_queue_(0), sem_(0) {
-    thread_ = std::thread([this] { Loop(); });
-  }
-  ~DebugAnywhereTask() = default;
+  /**
+   * @brief Constructs a DebugAnywhereTask with the specified configuration and queue size.
+   * @param config Configuration settings for the task.
+   * @param queue_size Maximum size of the internal data queue.
+   */
+  DebugAnywhereTask(const DebugAnywhereConfig& config, const size_t queue_size);
 
-  void Loop() {
-    auto lcm = std::make_shared<lcm::LCM>("udpm://239.255.76.67:" + config_.port + "?ttl=" + config_.ttl);
-    ip_hash_ = ipv4_to_unique_hash_hex(config_.ip);
-    while (true) {
-      DebugDataStruct* data_ptr;
-      while (data_queue_.pop(data_ptr)) {
-        DebugData debug_data;
-        debug_data.count = data_ptr->data.size();
-        debug_data.data = data_ptr->data;
-        lcm->publish(data_ptr->topic + "_" + ip_hash_, &debug_data);
-        delete data_ptr;
-      }
-      sem_.acquire();
-    }
-  }
+  /**
+   * @brief Destructor that stops the task and joins the thread.
+   */
+  ~DebugAnywhereTask();
 
-  void Publish(const std::string& channel, const std::vector<double>& data) {
-    DebugDataStruct* data_ptr = new DebugDataStruct(channel, data);
-    if (data_queue_.push(data_ptr)) {
-      sem_.release();
-    } else {
-      delete data_ptr;
-    }
-  }
+  /**
+   * @brief The main loop that processes and publishes debug data.
+   */
+  void Loop();
+
+  /**
+   * @brief Publishes debug data to a specified channel.
+   * @param channel The name of the channel to publish to.
+   * @param data The vector of data values to publish.
+   */
+  void Publish(const std::string& channel, const std::vector<double>& data);
 
  private:
+  /** @brief Thread running the main loop. */
   std::thread thread_;
+
+  /** @brief Hashed representation of the IP address. */
   std::string ip_hash_;
+
+  /** @brief Configuration settings for the task. */
   DebugAnywhereConfig config_;
+
+  /** @brief Lock-free queue to store incoming debug data. */
   boost::lockfree::queue<DebugDataStruct*> data_queue_;
+
+  /** @brief Semaphore to signal the availability of data. */
   std::binary_semaphore sem_;
+
+  /** @brief Atomic flag indicating whether the task is running. */
+  std::atomic<bool> running_;
 };
 
+/**
+ * @brief Singleton class providing an interface to publish debug data anywhere.
+ */
 class DebugAnywhere {
  public:
   // Delete copy constructor and assignment operator
   DebugAnywhere(const DebugAnywhere&) = delete;
   DebugAnywhere& operator=(const DebugAnywhere&) = delete;
 
-  static DebugAnywhere& getInstance() {
-    static DebugAnywhere instance;  // 无参数构造
-    return instance;
-  }
+  /**
+   * @brief Retrieves the singleton instance of DebugAnywhere.
+   * @return Reference to the singleton instance.
+   */
+  static DebugAnywhere& getInstance();
 
-  static void initialize(const DebugAnywhereConfig& config) { getInstance().task_ = std::make_shared<DebugAnywhereTask>(config); }
+  /**
+   * @brief Initializes the DebugAnywhere singleton with the given configuration and queue size.
+   * @param config Configuration settings for the debug task.
+   * @param queue_size Maximum size of the internal data queue.
+   */
+  static void initialize(const DebugAnywhereConfig& config, const size_t queue_size);
 
-  void Publish(const std::string& channel, const std::vector<double>& data) { getInstance().task_->Publish(channel, data); }
+  /**
+   * @brief Publishes debug data to a specified channel.
+   * @param channel The name of the channel to publish to.
+   * @param data The vector of data values to publish.
+   */
+  void Publish(const std::string& channel, const std::vector<double>& data);
 
  private:
-  // Private constructor to prevent direct instantiation
-  DebugAnywhere() = default;
-  ~DebugAnywhere() = default;
+  /**
+   * @brief Private constructor to prevent direct instantiation.
+   */
+  DebugAnywhere();
+
+  /**
+   * @brief Destructor.
+   */
+  ~DebugAnywhere();
+
+  /** @brief Shared pointer to the DebugAnywhereTask instance. */
   std::shared_ptr<DebugAnywhereTask> task_;
 };
+
 }  // namespace openrobot::ocm

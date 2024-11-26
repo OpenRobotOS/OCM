@@ -1,68 +1,50 @@
-// file: read_log.cpp
-//
-// LCM example program.  Demonstrates how to read and decode messages directly
-// from a log file in C++.  It is also possible to use the log file provider --
-// see the documentation on the LCM class for details on that method.
-//
-// compile with:
-//  $ g++ -o read_log read_log.cpp -llcm
-//
-// On a system with pkg-config, you can also use:
-//  $ g++ -o read_log read_log.cpp `pkg-config --cflags --libs lcm`
-
 #include <stdio.h>
 
 #include <lcm/lcm-cpp.hpp>
 
 #include "exlcm/example_t.hpp"
 
-int main(int argc, char **argv)
-{
-    if (argc < 2) {
-        fprintf(stderr, "usage: read_log <logfile>\n");
-        return 1;
-    }
+int main(int argc, char **argv) {
+  // 检查是否提供了日志文件路径
+  if (argc < 2) {
+    fprintf(stderr, "usage: read_log <logfile>\n");
+    return 1;
+  }
 
-    // Open the log file.
-    lcm::LogFile log(argv[1], "r");
-    if (!log.good()) {
-        perror("LogFile");
-        fprintf(stderr, "couldn't open log file %s\n", argv[1]);
-        return 1;
-    }
+  // 打开日志文件
+  lcm::LogFile log(argv[1], "r");
+  if (!log.good()) {
+    perror("LogFile");
+    fprintf(stderr, "couldn't open log file %s\n", argv[1]);
+    return 1;
+  }
 
-    while (1) {
-        // Read a log event.
-        const lcm::LogEvent *event = log.readNextEvent();
-        if (!event)
-            break;
+  while (1) {
+    // 读取一个日志事件
+    const lcm::LogEvent *event = log.readNextEvent();
+    if (!event) break;  // 如果没有更多事件，退出循环
 
-        // Only process messages on the EXAMPLE channel.
-        if (event->channel != "EXAMPLE")
-            continue;
+    // 只处理来自EXAMPLE频道的消息
+    if (event->channel != "EXAMPLE") continue;
 
-        // Try to decode the message.
-        exlcm::example_t msg;
-        if (msg.decode(event->data, 0, event->datalen) != event->datalen)
-            continue;
+    // 尝试解码消息
+    exlcm::example_t msg;
+    if (msg.decode(event->data, 0, event->datalen) != event->datalen) continue;  // 如果解码失败，跳过此事件
 
-        // Decode success!  Print out the message contents.
-        printf("Message:\n");
-        printf("  timestamp   = %lld\n", (long long) msg.timestamp);
-        printf("  position    = (%f, %f, %f)\n", msg.position[0], msg.position[1], msg.position[2]);
-        printf("  orientation = (%f, %f, %f, %f)\n", msg.orientation[0], msg.orientation[1],
-               msg.orientation[2], msg.orientation[3]);
-        printf("  ranges:");
-        for (int i = 0; i < msg.num_ranges; i++)
-            printf(" %d", msg.ranges[i]);
-        printf("\n");
-        printf("  name        = '%s'\n", msg.name.c_str());
-        printf("  enabled     = %d\n", msg.enabled);
-    }
+    // 解码成功！打印消息内容
+    printf("Message:\n");
+    printf("  timestamp   = %lld\n", (long long)msg.timestamp);                                                                    // 打印时间戳
+    printf("  position    = (%f, %f, %f)\n", msg.position[0], msg.position[1], msg.position[2]);                                   // 打印位置
+    printf("  orientation = (%f, %f, %f, %f)\n", msg.orientation[0], msg.orientation[1], msg.orientation[2], msg.orientation[3]);  // 打印朝向
+    printf("  ranges:");
+    for (int i = 0; i < msg.num_ranges; i++) printf(" %d", msg.ranges[i]);  // 打印距离信息
+    printf("\n");
+    printf("  name        = '%s'\n", msg.name.c_str());  // 打印名称
+    printf("  enabled     = %d\n", msg.enabled);         // 打印启用状态
+  }
 
-    // Log file is closed automatically when the log variable goes out of
-    // scope.
+  // 当log变量超出作用域时，日志文件会自动关闭
 
-    printf("done\n");
-    return 0;
+  printf("done\n");
+  return 0;  // 程序结束
 }

@@ -2,4 +2,4 @@ build*/
 .cache/
 log/
 .vscode
-
+.VSCodeCounter

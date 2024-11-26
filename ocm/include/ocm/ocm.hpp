@@ -2,7 +2,7 @@
 
 #include <fcntl.h>
 #include <semaphore.h>
-#include <stddef.h>  // for size_t
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -17,7 +17,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include "common/ip_tool.hpp"
+#include "common/prefix_string.hpp"
 
 namespace openrobot::ocm {
 
@@ -267,7 +267,7 @@ class SharedMemorySemaphore {
    *
    * Default destructor ensures proper cleanup of the semaphore.
    */
-  ~SharedMemorySemaphore() = default;
+  ~SharedMemorySemaphore();
 
   /**
    * @brief Initializes the semaphore.
@@ -365,18 +365,57 @@ class SharedMemorySemaphore {
   std::string name_;     /**< Name identifier for the semaphore */
 };
 
+/**
+ * @brief Shared memory data wrapper.
+ *
+ * The `SharedMemoryData` class manages shared memory segments, providing thread-safe access
+ * and synchronization using semaphores. It facilitates inter-process communication by allowing
+ * multiple processes to read from and write to shared memory.
+ *
+ * @tparam T The type of the data to be stored in shared memory.
+ */
 template <typename T>
 class SharedMemoryData {
  public:
+  /**
+   * @brief Constructs a SharedMemoryData instance.
+   *
+   * Initializes the shared memory segment with the given name. If `check_size` is true,
+   * it ensures that the existing shared memory segment matches the specified size.
+   *
+   * @param name The identifier for the shared memory segment.
+   * @param check_size Flag indicating whether to verify the size of the existing shared memory.
+   * @param size The size of the shared memory segment in bytes. Required if `check_size` is true.
+   *
+   * @throws std::runtime_error If initialization fails.
+   */
   SharedMemoryData(const std::string& name, bool check_size, size_t size = 0) : sem_(name + "_shm", 1), data_(nullptr), fd_(0) {
     Init(name, check_size, size);
   }
+
+  /**
+   * @brief Destructor.
+   *
+   * Default destructor ensures proper cleanup of shared memory resources.
+   */
   ~SharedMemoryData() = default;
 
+  /**
+   * @brief Initializes the shared memory segment.
+   *
+   * Opens an existing shared memory segment or creates a new one if it does not exist.
+   * Optionally checks if the size matches the expected size.
+   *
+   * @param name The identifier for the shared memory segment.
+   * @param check_size Flag indicating whether to verify the size of the existing shared memory.
+   * @param size The size of the shared memory segment in bytes. Required if `check_size` is true.
+   *
+   * @throws std::runtime_error If initialization fails.
+   */
   void Init(const std::string& name, bool check_size, size_t size) {
     assert(!data_);
     bool is_create = false;
-    name_ = "openrobot_ocm_" + name;
+    name_ = GetNamePrefix(name);
     size_ = size;
 
     fd_ = shm_open(name_.c_str(), O_RDWR, 0);
@@ -418,6 +457,13 @@ class SharedMemoryData {
     data_ = static_cast<T*>(mem);
   }
 
+  /**
+   * @brief Closes and destroys the existing shared memory segment.
+   *
+   * Closes the semaphore, unmaps the shared memory, unlinks it from the system, and closes the file descriptor.
+   *
+   * @throws std::runtime_error If any cleanup operation fails.
+   */
   void CloseExisting() {
     sem_.Destroy();
     assert(data_);
@@ -435,6 +481,14 @@ class SharedMemoryData {
     }
     fd_ = 0;
   }
+
+  /**
+   * @brief Detaches from the shared memory segment without destroying it.
+   *
+   * Unmaps the shared memory and closes the file descriptor.
+   *
+   * @throws std::runtime_error If detaching fails.
+   */
   void Detach() {
     assert(data_);
     if (munmap(static_cast<void*>(data_), size_) != 0) {
@@ -446,49 +500,157 @@ class SharedMemoryData {
     }
     fd_ = 0;
   }
+
+  /**
+   * @brief Retrieves a pointer to the shared data.
+   *
+   * @return A pointer to the shared data of type `T`.
+   *
+   * @throws std::runtime_error If the shared memory is not mapped.
+   */
   T* Get() {
     assert(data_);
     return data_;
   }
+
+  /**
+   * @brief Acquires the semaphore lock.
+   *
+   * Decrements the semaphore to gain exclusive access to the shared memory.
+   *
+   * @throws std::runtime_error If the lock operation fails.
+   */
   void Lock() { sem_.Decrement(); }
+
+  /**
+   * @brief Releases the semaphore lock.
+   *
+   * Increments the semaphore to release exclusive access to the shared memory.
+   *
+   * @throws std::runtime_error If the unlock operation fails.
+   */
   void UnLock() { sem_.Increment(); }
+
+  /**
+   * @brief Retrieves the size of the shared memory segment.
+   *
+   * @return The size of the shared memory in bytes.
+   */
   int GetSize() const { return static_cast<int>(size_); }
 
  private:
-  SharedMemorySemaphore sem_;
-  T* data_ = nullptr;
-  std::string name_;
-  size_t size_;
-  int fd_;
+  SharedMemorySemaphore sem_; /**< Semaphore for synchronizing access to shared memory */
+  T* data_ = nullptr;         /**< Pointer to the shared memory data */
+  std::string name_;          /**< Identifier for the shared memory segment */
+  size_t size_;               /**< Size of the shared memory segment in bytes */
+  int fd_;                    /**< File descriptor for the shared memory */
 };
 
+/**
+ * @brief Shared memory topic manager.
+ *
+ * The `SharedMemoryTopic` class facilitates publishing and subscribing to topics using shared memory.
+ * It manages multiple shared memory segments and semaphores, allowing efficient inter-process communication
+ * for different topics.
+ */
 class SharedMemoryTopic {
  public:
+  /**
+   * @brief Default constructor.
+   *
+   * Initializes the `SharedMemoryTopic` instance.
+   */
   SharedMemoryTopic() = default;
-  SharedMemoryTopic(const SharedMemoryTopic&) = delete;
-  SharedMemoryTopic& operator=(const SharedMemoryTopic&) = delete;
-  SharedMemoryTopic(SharedMemoryTopic&&) = delete;
-  SharedMemoryTopic& operator=(SharedMemoryTopic&&) = delete;
-  ~SharedMemoryTopic() {
-    for (auto& shm : shm_map_) {
-      shm.second->CloseExisting();
-    }
-  }
 
+  /**
+   * @brief Deleted copy constructor.
+   *
+   * Prevents copying of `SharedMemoryTopic` instances to maintain unique ownership semantics.
+   */
+  SharedMemoryTopic(const SharedMemoryTopic&) = delete;
+
+  /**
+   * @brief Deleted copy assignment operator.
+   *
+   * Prevents assignment from one `SharedMemoryTopic` to another to maintain unique ownership semantics.
+   */
+  SharedMemoryTopic& operator=(const SharedMemoryTopic&) = delete;
+
+  /**
+   * @brief Deleted move constructor.
+   *
+   * Prevents moving of `SharedMemoryTopic` instances to maintain unique ownership semantics.
+   */
+  SharedMemoryTopic(SharedMemoryTopic&&) = delete;
+
+  /**
+   * @brief Deleted move assignment operator.
+   *
+   * Prevents move assignment of `SharedMemoryTopic` instances to maintain unique ownership semantics.
+   */
+  SharedMemoryTopic& operator=(SharedMemoryTopic&&) = delete;
+
+  /**
+   * @brief Destructor.
+   *
+   * Default destructor ensures proper cleanup of shared memory topics.
+   */
+  ~SharedMemoryTopic() = default;
+
+  /**
+   * @brief Publishes a single message to a specified topic.
+   *
+   * Writes the message to the shared memory segment associated with `shm_name` and signals the semaphore
+   * associated with `topic_name` to notify subscribers.
+   *
+   * @tparam MessageType The type of the message to publish. Must support `encode` and `getEncodedSize` methods.
+   * @param topic_name The name of the topic to publish to.
+   * @param shm_name The name of the shared memory segment.
+   * @param msg Pointer to the message to be published.
+   *
+   * @throws std::runtime_error If writing to shared memory or publishing the semaphore fails.
+   */
   template <class MessageType>
   void Publish(const std::string& topic_name, const std::string& shm_name, const MessageType* msg) {
     WriteDataToSHM(shm_name, msg);
     PublishSem(topic_name);
   }
 
+  /**
+   * @brief Publishes a list of messages to multiple specified topics.
+   *
+   * Writes the list of messages to the shared memory segment associated with `shm_name` and signals the semaphores
+   * associated with each `topic_name` in the provided vector.
+   *
+   * @tparam MessageType The type of the messages to publish. Must support `encode` and `getEncodedSize` methods.
+   * @param topic_names Vector of topic names to publish the messages to.
+   * @param shm_name The name of the shared memory segment.
+   * @param msgs Vector of messages to be published.
+   *
+   * @throws std::runtime_error If writing to shared memory or publishing any semaphore fails.
+   */
   template <class MessageType>
-  void PublishList(const std::vector<std::string>& topic_name, const std::string& shm_name, const std::vector<MessageType>& msgs) {
+  void PublishList(const std::vector<std::string>& topic_names, const std::string& shm_name, const std::vector<MessageType>& msgs) {
     WriteDataToSHM(shm_name, msgs);
-    for (const auto& topic : topic_name) {
+    for (const auto& topic : topic_names) {
       PublishSem(topic);
     }
   }
 
+  /**
+   * @brief Subscribes to a specified topic and processes the received message using a callback.
+   *
+   * Waits for the semaphore associated with `topic_name`, reads the message from the shared memory segment `shm_name`,
+   * decodes it, and invokes the provided `callback` with the decoded message.
+   *
+   * @tparam MessageType The type of the message to subscribe to. Must support `decode` method.
+   * @tparam Callback The type of the callback function to process the received message.
+   * @param topic_name The name of the topic to subscribe to.
+   * @param shm_name The name of the shared memory segment.
+   * @param callback The callback function to process the received message.
+   *
+   * @throws std::runtime_error If accessing shared memory or semaphore fails.
+   */
   template <class MessageType, typename Callback>
   void Subscribe(const std::string& topic_name, const std::string& shm_name, Callback callback) {
     CheckSemExist(topic_name);
@@ -501,6 +663,18 @@ class SharedMemoryTopic {
     callback(msg);
   }
 
+  /**
+   * @brief Attempts to subscribe to a specified topic without blocking.
+   *
+   * Tries to decrement the semaphore associated with `topic_name`. If successful, reads and decodes the message
+   * from the shared memory segment `shm_name` and invokes the provided `callback` with the decoded message.
+   *
+   * @tparam MessageType The type of the message to subscribe to. Must support `decode` method.
+   * @tparam Callback The type of the callback function to process the received message.
+   * @param topic_name The name of the topic to subscribe to.
+   * @param shm_name The name of the shared memory segment.
+   * @param callback The callback function to process the received message.
+   */
   template <class MessageType, typename Callback>
   void SubscribeNoWait(const std::string& topic_name, const std::string& shm_name, Callback callback) {
     CheckSemExist(topic_name);
@@ -515,6 +689,17 @@ class SharedMemoryTopic {
   }
 
  private:
+  /**
+   * @brief Writes a message to the shared memory segment.
+   *
+   * Encodes the `msg` into the shared memory segment identified by `shm_name`.
+   *
+   * @tparam MessageType The type of the message to write. Must support `encode` and `getEncodedSize` methods.
+   * @param shm_name The name of the shared memory segment.
+   * @param msg Pointer to the message to be written.
+   *
+   * @throws std::runtime_error If writing to shared memory fails.
+   */
   template <class MessageType>
   void WriteDataToSHM(const std::string& shm_name, const MessageType* msg) {
     int datalen = msg->getEncodedSize();
@@ -523,22 +708,56 @@ class SharedMemoryTopic {
     msg->encode(shm_map_.at(shm_name)->Get(), 0, datalen);
     shm_map_.at(shm_name)->UnLock();
   }
+
+  /**
+   * @brief Signals the semaphore associated with a topic.
+   *
+   * Increments the semaphore for the specified `topic_name` if its current value is zero.
+   *
+   * @param topic_name The name of the topic whose semaphore is to be signaled.
+   *
+   * @throws std::runtime_error If signaling the semaphore fails.
+   */
   void PublishSem(const std::string& topic_name) {
     CheckSemExist(topic_name);
     sem_map_.at(topic_name)->IncrementWhenZero();
   }
+
+  /**
+   * @brief Ensures that the shared memory segment exists.
+   *
+   * If the shared memory segment identified by `shm_name` does not exist, it creates a new one.
+   * Optionally checks if the size matches the expected size.
+   *
+   * @param shm_name The name of the shared memory segment.
+   * @param check_size Flag indicating whether to verify the size of the shared memory segment.
+   * @param size The expected size of the shared memory segment in bytes. Required if `check_size` is true.
+   *
+   * @throws std::runtime_error If creating or accessing shared memory fails.
+   */
   void CheckSHMExist(const std::string& shm_name, bool check_size, int size = 0) {
     if (shm_map_.find(shm_name) == shm_map_.end()) {
       shm_map_.emplace(shm_name, std::make_shared<SharedMemoryData<uint8_t>>(shm_name, check_size, size));
     }
   }
+
+  /**
+   * @brief Ensures that the semaphore for a topic exists.
+   *
+   * If the semaphore associated with `topic_name` does not exist, it creates a new one.
+   *
+   * @param topic_name The name of the topic whose semaphore is to be ensured.
+   *
+   * @throws std::runtime_error If creating or accessing the semaphore fails.
+   */
   void CheckSemExist(const std::string& topic_name) {
     if (sem_map_.find(topic_name) == sem_map_.end()) {
       sem_map_.emplace(topic_name, std::make_shared<SharedMemorySemaphore>(topic_name, 0));
     }
   }
-  std::unordered_map<std::string, std::shared_ptr<SharedMemoryData<uint8_t>>> shm_map_;
-  std::unordered_map<std::string, std::shared_ptr<SharedMemorySemaphore>> sem_map_;
+
+  std::unordered_map<std::string, std::shared_ptr<SharedMemoryData<uint8_t>>> shm_map_; /**< Map of shared memory segments keyed by their names */
+  std::unordered_map<std::string, std::shared_ptr<SharedMemorySemaphore>> sem_map_;     /**< Map of semaphores keyed by topic names */
 };
 
 }  // namespace openrobot::ocm

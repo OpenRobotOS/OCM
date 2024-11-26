@@ -5,9 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH "/opt/openrobotlib" CACHE PATH "Default prefix path" FORCE)
-endif()
+# 追加新的路径到 CMAKE_PREFIX_PATH
+set(CMAKE_PREFIX_PATH "/opt/openrobotlib/ocm" "/opt/openrobotlib/third_party")
+# 输出 CMAKE_PREFIX_PATH 进行调试
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 # 查找 OCM 包
 find_package(OCM REQUIRED)
@@ -16,9 +17,6 @@ find_package(OCM REQUIRED)
 add_executable(AtomicPtr AtomicPtr.cpp)
 add_executable(RWLockData RWLockData.cpp)
 
-
 # 链接 OCM 库
 target_link_libraries(AtomicPtr PRIVATE OPENROBOT::OCM)
 target_link_libraries(RWLockData PRIVATE OPENROBOT::OCM)
-
-

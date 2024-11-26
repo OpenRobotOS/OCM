@@ -11,14 +11,29 @@
 
 namespace openrobot::ocm {
 
+/**
+ * @brief Constructs a SharedMemorySemaphore with the given name and initial value.
+ *
+ * Initializes the semaphore by calling the `Init` method.
+ *
+ * @param name The name identifier for the semaphore.
+ * @param value The initial value of the semaphore.
+ */
 SharedMemorySemaphore::SharedMemorySemaphore(const std::string& name, unsigned int value) { Init(name, value); }
-/*!
- * 打开现有的命名信号量，如果信号量不存在，则创建它。
- * @param name 信号量的名字
- * @param value 信号量的初始值
+
+/**
+ * @brief Opens an existing named semaphore or creates it if it does not exist.
+ *
+ * This method attempts to open a named semaphore. If the semaphore does not exist,
+ * it creates a new one with the specified initial value.
+ *
+ * @param name The name identifier for the semaphore.
+ * @param value The initial value of the semaphore.
+ *
+ * @throws std::runtime_error If semaphore initialization fails.
  */
 void SharedMemorySemaphore::Init(const std::string& name, unsigned int value) {
-  const auto sem_name = "openrobot_ocm_" + name;
+  const auto sem_name = GetNamePrefix(name);
   sem_ = sem_open(sem_name.c_str(), O_CREAT, 0644, value);
   if (sem_ == SEM_FAILED) {
     throw std::runtime_error("[SharedMemorySemaphore] Failed to initialize shared memory semaphore: " + std::string(strerror(errno)));
@@ -27,8 +42,12 @@ void SharedMemorySemaphore::Init(const std::string& name, unsigned int value) {
   }
 }
 
-/*!
- * 增加信号量的值。
+/**
+ * @brief Increments the semaphore's value.
+ *
+ * Equivalent to a "post" operation, increasing the semaphore's count by one.
+ *
+ * @throws std::runtime_error If the increment operation fails.
  */
 void SharedMemorySemaphore::Increment() {
   if (sem_post(sem_) != 0) {
@@ -36,8 +55,12 @@ void SharedMemorySemaphore::Increment() {
   }
 }
 
-/*!
- * 增加信号量的值，当信号量为零时。
+/**
+ * @brief Increments the semaphore's value if it is currently zero.
+ *
+ * Checks the semaphore's current value and only increments it if it is zero.
+ *
+ * @throws std::runtime_error If the increment operation fails.
  */
 void SharedMemorySemaphore::IncrementWhenZero() {
   int value;
@@ -51,8 +74,14 @@ void SharedMemorySemaphore::IncrementWhenZero() {
   }
 }
 
-/*!
- * 增加信号量的值。
+/**
+ * @brief Increments the semaphore's value by a specified amount.
+ *
+ * Performs multiple "post" operations to increase the semaphore's count.
+ *
+ * @param value The amount by which to increment the semaphore.
+ *
+ * @throws std::runtime_error If any increment operation fails.
  */
 void SharedMemorySemaphore::Increment(unsigned int value) {
   for (unsigned int i = 0; i < value; ++i) {
@@ -62,8 +91,12 @@ void SharedMemorySemaphore::Increment(unsigned int value) {
   }
 }
 
-/*!
- * 等待信号量的值大于0，如果信号量为0，则阻塞等待。
+/**
+ * @brief Decrements the semaphore's value.
+ *
+ * Equivalent to a "wait" operation, decreasing the semaphore's count by one.
+ *
+ * @throws std::runtime_error If the decrement operation fails.
  */
 void SharedMemorySemaphore::Decrement() {
   if (sem_wait(sem_) != 0) {
@@ -71,17 +104,26 @@ void SharedMemorySemaphore::Decrement() {
   }
 }
 
-/*!
- * 尝试减少信号量的值，如果信号量为0，则不会阻塞，直接返回 false。
- * @return 如果成功减少信号量返回 true，否则返回 false。
+/**
+ * @brief Attempts to decrement the semaphore's value without blocking.
+ *
+ * Tries to perform a "wait" operation. If the semaphore's value is greater than zero,
+ * it decrements the value and returns `true`. Otherwise, it returns `false`.
+ *
+ * @return `true` if the semaphore was successfully decremented; otherwise, `false`.
  */
 bool SharedMemorySemaphore::TryDecrement() { return (sem_trywait(sem_) == 0); }
 
-/*!
- * 设置超时的等待信号量功能。
- * @param seconds 等待的秒数。
- * @param nanoseconds 等待的纳秒数。
- * @return 如果在超时前成功获得信号量，则返回 true；否则返回 false。
+/**
+ * @brief Attempts to decrement the semaphore's value with a timeout.
+ *
+ * Waits for the semaphore to become available until the specified timeout.
+ *
+ * @param seconds The number of seconds to wait.
+ * @param nanoseconds The number of nanoseconds to wait.
+ * @return `true` if the semaphore was successfully decremented within the timeout; otherwise, `false`.
+ *
+ * @throws std::runtime_error If retrieving the current time fails.
  */
 bool SharedMemorySemaphore::DecrementTimeout(uint64_t seconds, uint64_t nanoseconds) {
   struct timespec ts;
@@ -97,8 +139,27 @@ bool SharedMemorySemaphore::DecrementTimeout(uint64_t seconds, uint64_t nanoseco
   return (sem_timedwait(sem_, &ts) == 0);
 }
 
-/*!
- * 删除命名信号量，确保其他进程不再使用它。
+/**
+ * @brief Retrieves the current value of the semaphore.
+ *
+ * @return The current count of the semaphore.
+ *
+ * @throws std::runtime_error If retrieving the semaphore's value fails.
+ */
+int SharedMemorySemaphore::GetValue() const {
+  int value;
+  if (sem_getvalue(sem_, &value) != 0) {
+    throw std::runtime_error("[SharedMemorySemaphore] Failed to get semaphore value: " + std::string(strerror(errno)));
+  }
+  return value;
+}
+
+/**
+ * @brief Destroys the semaphore.
+ *
+ * Closes and unlinks the semaphore, removing it from the system.
+ *
+ * @throws std::runtime_error If closing or unlinking the semaphore fails.
  */
 void SharedMemorySemaphore::Destroy() {
   if (sem_close(sem_) != 0) {
@@ -111,12 +172,11 @@ void SharedMemorySemaphore::Destroy() {
   }
 }
 
-int SharedMemorySemaphore::GetValue() const {
-  int value;
-  if (sem_getvalue(sem_, &value) != 0) {
-    throw std::runtime_error("[SharedMemorySemaphore] Failed to get semaphore value: " + std::string(strerror(errno)));
-  }
-  return value;
-}
+/**
+ * @brief Destructor for SharedMemorySemaphore.
+ *
+ * Ensures that the semaphore is properly destroyed when the object is destructed.
+ */
+SharedMemorySemaphore::~SharedMemorySemaphore() = default;
 
 }  // namespace openrobot::ocm

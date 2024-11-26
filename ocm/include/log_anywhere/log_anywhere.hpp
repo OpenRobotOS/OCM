@@ -2,6 +2,7 @@
 #pragma once
 
 #include <spdlog/async.h>
+#include <spdlog/common.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -158,25 +159,22 @@ class LogAnywhere {
 };
 
 /**
- * @brief Retrieves the global logger instance.
+ * @brief Retrieves the logger instance for "openrobot_ocm_logger".
  *
- * This function returns a shared pointer to the spdlog logger named "openrobot_ocm_logger".
- * Ensure that an instance of LogAnywhere has been created before calling this function.
+ * This function checks if a logger named "openrobot_ocm_logger" exists.
+ * If the logger is not found, a default logger is created and returned.
+ * The default logger writes logs to a file named "logs/default.log".
  *
- * @return Shared pointer to the spdlog logger.
- *
- * @throws std::runtime_error If the logger is not found.
- *
- * @example
- * @code
- * auto logger = GetLogger();
- * logger->info("This is an informational message.");
- * @endcode
+ * @return A shared pointer to the logger instance.
+ * @throws std::runtime_error If the logger cannot be initialized or found.
  */
 inline std::shared_ptr<spdlog::logger> GetLogger() {
   auto logger = spdlog::get("openrobot_ocm_logger");
   if (!logger) {
-    throw std::runtime_error("Logger 'openrobot_ocm_logger' not found. Ensure LogAnywhere is initialized.");
+    // If the logger is not found, create a default logger
+    logger = spdlog::basic_logger_mt("openrobot_ocm_logger", "logs/default.log");
+    logger->set_level(spdlog::level::trace);
+    spdlog::set_default_logger(logger);
   }
   return logger;
 }

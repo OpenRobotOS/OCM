@@ -1,21 +1,20 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(NodeTest LANGUAGES CXX)
+project(NodeMap LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT CMAKE_PREFIX_PATH)
-  set(CMAKE_PREFIX_PATH
-      "/opt/openrobotlib"
-      CACHE PATH "Default prefix path" FORCE)
-endif()
+# 追加新的路径到 CMAKE_PREFIX_PATH
+set(CMAKE_PREFIX_PATH "/opt/openrobotlib/ocm" "/opt/openrobotlib/third_party")
+# 输出 CMAKE_PREFIX_PATH 进行调试
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 # 查找 OCM 包
 find_package(OCM REQUIRED)
 
 # 添加可执行文件
-add_executable(NodeTest test.cpp)
+add_executable(NodeMap node_map.cpp)
 
 # 链接 OCM 库
-target_link_libraries(NodeTest PUBLIC OPENROBOT::OCM)
+target_link_libraries(NodeMap PUBLIC OPENROBOT::OCM)

@@ -96,7 +96,7 @@ void Executer::CreateTask() {
                                executer_config_.executer_setting.all_cpu_affinity_enable);
 
     // Log the addition of the task
-    logger_->debug("Executer: Task {} added.", task_setting.second.task_name);
+    logger_->debug("[Executer] Task {} added.", task_setting.second.task_name);
   }
 
   // Create tasks for the standby group
@@ -115,12 +115,12 @@ void Executer::CreateTask() {
                                executer_config_.executer_setting.all_cpu_affinity_enable);
 
     // Log the addition of the task
-    logger_->debug("Executer: Task {} added.", task_setting.second.task_name);
+    logger_->debug("[Executer] Task {} added.", task_setting.second.task_name);
   }
 
   // Add exclusive task groups to the set
   for (auto& exclusive_task_group : executer_config_.exclusive_task_group) {
-    logger_->debug("Executer: Exclusive group {} added.", exclusive_task_group.second.group_name);
+    logger_->debug("[Executer] Exclusive group {} added.", exclusive_task_group.second.group_name);
     exclusive_group_set_.insert(exclusive_task_group.second.group_name);
   }
 }
@@ -159,11 +159,11 @@ void Executer::InitTask() {
 
         // If pre-nodes are ready or there are no pre-nodes, initialize and start the task
         if (is_pre_node_empty || is_pre_node_ready) {
-          task.first = true;                                                      // Mark task as started
-          task.second->Init();                                                    // Initialize the task
-          task.second->TaskStart(task.second->GetTaskSetting().system_setting);   // Start the task
-          task_set_wait_to_start.erase(task.second->GetTaskName());               // Remove from waiting set
-          logger_->info("Executer: Task {} start.", task.second->GetTaskName());  // Log the start
+          task.first = true;                                                       // Mark task as started
+          task.second->Init();                                                     // Initialize the task
+          task.second->TaskStart(task.second->GetTaskSetting().system_setting);    // Start the task
+          task_set_wait_to_start.erase(task.second->GetTaskName());                // Remove from waiting set
+          logger_->info("[Executer] Task {} start.", task.second->GetTaskName());  // Log the start
         }
       }
     }
@@ -255,13 +255,13 @@ void Executer::TransitionCheck() {
         target_group_ = desired_group;
 
         // Log the transition initiation
-        logger_->info("Executer: Transition from group {} to group {}", ColorPrint(current_group, ColorEnum::YELLOW),
+        logger_->info("[Executer] Transition from group {} to group {}", ColorPrint(current_group, ColorEnum::YELLOW),
                       ColorPrint(desired_group, ColorEnum::YELLOW));
       } else {
         // If the desired group is not exclusive, log an error
         if (desired_group_history_ != desired_group) {
           desired_group_history_ = desired_group;
-          logger_->error("Executer: Target group {} is not an exclusive group.", ColorPrint(desired_group, ColorEnum::RED));
+          logger_->error("[Executer] Target group {} is not an exclusive group.", ColorPrint(desired_group, ColorEnum::RED));
         }
       }
     }
@@ -322,8 +322,8 @@ void Executer::Transition() {
               auto init_node_set = task.second->Init(all_init_node_set);             // Initialize with required nodes
               task.second->TaskStart(task.second->GetTaskSetting().system_setting);  // Start the task
               all_init_node_set_log.insert(init_node_set.begin(), init_node_set.end());
-              task_set_wait_to_start.erase(task.second->GetTaskName());               // Remove from waiting set
-              logger_->info("Executer: Task {} start.", task.second->GetTaskName());  // Log the start
+              task_set_wait_to_start.erase(task.second->GetTaskName());                // Remove from waiting set
+              logger_->info("[Executer] Task {} start.", task.second->GetTaskName());  // Log the start
             }
           }
         }
@@ -331,13 +331,14 @@ void Executer::Transition() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
       }
 
+      // Log the completion of the transition
+      logger_->info("[Executer] Transition from {} to group {} finished.\n      - Exit node: {} \n      - Enter node: {}",
+                    ColorPrint(current_group_.GetValue(), ColorEnum::YELLOW), ColorPrint(target_group_, ColorEnum::YELLOW),
+                    ColorPrint(JointStrSet(exit_node_set_, ","), ColorEnum::BLUE), ColorPrint(JointStrSet(enter_node_set_, ","), ColorEnum::GREEN));
+
       // Update the current group and reset transition flags
       current_group_ = target_group_;
       is_transition_ = false;
-
-      // Log the completion of the transition
-      logger_->info("Executer: Exit node: {}, Enter node: {}", JointStrSet(exit_node_set_, ","), JointStrSet(enter_node_set_, ","));
-      logger_->info("Executer: Transition to group {} finished.", ColorPrint(target_group_, ColorEnum::YELLOW));
     } else {
       // Check if all current tasks have stopped
       all_current_task_stop_ =

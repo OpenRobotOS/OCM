@@ -2,32 +2,33 @@
 #include <ocm/ocm.hpp>
 #include <thread>
 
-// Example function to read data using a read lock
+// 示例函数，使用读锁读取数据
 void ReadData(openrobot::ocm::RWLockData<int>& rwData) {
-  rwData.LockRead();  // Acquire read lock
-  std::cout << "Read value: " << rwData.data_ << std::endl;
-  rwData.UnlockRead();  // Release read lock
+  rwData.LockRead();                                             // 获取读锁
+  std::cout << "Read value: " << *rwData.GetPtr() << std::endl;  // 输出读取到的值
+  rwData.UnlockRead();                                           // 释放读锁
 }
 
-// Example function to modify data using a write lock
+// 示例函数，使用写锁修改数据
 void WriteData(openrobot::ocm::RWLockData<int>& rwData, int newValue) {
-  rwData.LockWrite();  // Acquire write lock
-  rwData.data_ = newValue;
-  std::cout << "Updated value to: " << rwData.data_ << std::endl;
-  rwData.UnlockWrite();  // Release write lock
+  rwData.LockWrite();                                                  // 获取写锁
+  *rwData.GetPtr() = newValue;                                         // 修改数据
+  std::cout << "Updated value to: " << *rwData.GetPtr() << std::endl;  // 输出更新后的值
+  rwData.UnlockWrite();                                                // 释放写锁
 }
 
 int main() {
-  openrobot::ocm::RWLockData<int> rwData(10);  // Initialize with value 10
+  openrobot::ocm::RWLockData<int> rwData(10);  // 初始化数据为10
 
-  // Use multiple threads to read and write to shared data
-  std::thread t1(ReadData, std::ref(rwData));
-  std::thread t2(WriteData, std::ref(rwData), 20);
-  std::thread t3(ReadData, std::ref(rwData));
+  // 使用多个线程来读取和写入共享数据
+  std::thread t1(ReadData, std::ref(rwData));       // 线程1：读取数据
+  std::thread t2(WriteData, std::ref(rwData), 20);  // 线程2：更新数据为20
+  std::thread t3(ReadData, std::ref(rwData));       // 线程3：读取数据
 
+  // 等待所有线程完成
   t1.join();
   t2.join();
   t3.join();
 
-  return 0;
+  return 0;  // 程序结束
 }

@@ -1,17 +1,37 @@
 #include <format>
-#include "task/task.hpp"
+#include <iostream>
+#include "common/struct_type.hpp"
+#include "task/task_base.hpp"
+using namespace openrobot::ocm;
 
 class Task : public openrobot::ocm::TaskBase {
  public:
-  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::INTERNAL_TIMER, 0.0) {}
-  void Run() override { std::cout << std::format("[openrobot_task]{}", this->GetLoopDuration()) << std::endl; }
+  // 构造函数，初始化任务名称、定时器类型等
+  Task() : openrobot::ocm::TaskBase("internal_timer_test", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0, false, false) {}
+
+  // 重写 Run 方法，输出当前任务的循环持续时间
+  void Run() override { std::cout << std::format("[internal_timer_test]{}", this->GetLoopDuration()) << std::endl; }
 };
 
 int main() {
+  // 创建定时器任务实例
   Task timer_task;
-  timer_task.TaskStart();
-  timer_task.SetPeriod(0.001);
+
+  // 设置系统配置，包括任务优先级和 CPU 亲和性
+  SystemSetting system_setting;
+  system_setting.priority = 0;        // 设置任务优先级为 0
+  system_setting.cpu_affinity = {0};  // 设置 CPU 亲和性为 CPU 0
+
+  // 启动任务
+  timer_task.TaskStart(system_setting);
+
+  // 设置任务的执行周期为 1 秒
+  timer_task.SetPeriod(1);
+
+  // 程序运行 5 秒钟
   std::this_thread::sleep_for(std::chrono::seconds(5));
+
+  // 销毁任务
   timer_task.TaskDestroy();
 
   return 0;

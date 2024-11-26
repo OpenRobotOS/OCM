@@ -3,7 +3,17 @@
 
 namespace openrobot::ocm {
 
-// Constructor Implementation
+/**
+ * @brief Constructs a `Task` instance.
+ *
+ * Initializes the TaskBase with the provided settings and sets up node flags based on the task configuration.
+ * It also initializes the execution period and logs the creation of the task thread.
+ *
+ * @param task_setting Configuration settings for the task, including task name, timer settings, and node configurations.
+ * @param node_list Shared pointer to a vector of node pointers associated with the task.
+ * @param all_priority_enable Flag indicating whether all priority settings are enabled for the task.
+ * @param all_cpu_affinity_enable Flag indicating whether all CPU affinity settings are enabled for the task.
+ */
 Task::Task(const TaskSetting& task_setting, const std::shared_ptr<std::vector<std::shared_ptr<NodeBase>>>& node_list, bool all_priority_enable,
            bool all_cpu_affinity_enable)
     : TaskBase(task_setting.task_name, task_setting.timer_setting.timer_type, static_cast<double>(task_setting.launch_setting.delay),
@@ -20,7 +30,12 @@ Task::Task(const TaskSetting& task_setting, const std::shared_ptr<std::vector<st
   }
 }
 
-// Init Method Implementation
+/**
+ * @brief Initializes all nodes associated with the task.
+ *
+ * Sets all nodes' initialization flags to true and calls InitNode to perform initialization.
+ * This ensures that all nodes are properly initialized before the task starts running.
+ */
 void Task::Init() {
   for (auto& node : node_init_flag_) {
     node.second = true;
@@ -28,7 +43,15 @@ void Task::Init() {
   InitNode(node_init_flag_);
 }
 
-// Overloaded Init Method Implementation
+/**
+ * @brief Initializes a specific subset of nodes associated with the task.
+ *
+ * @param init_node_list Set of node names to initialize.
+ * @return Set of node names that were successfully initialized.
+ *
+ * This method allows selective initialization of nodes based on the provided list.
+ * Only nodes present in `init_node_list` will have their initialization flags set to true and be initialized.
+ */
 std::set<std::string> Task::Init(const std::set<std::string>& init_node_list) {
   std::set<std::string> init_node_list_result;
   for (auto& node : node_init_flag_) {
@@ -41,7 +64,13 @@ std::set<std::string> Task::Init(const std::set<std::string>& init_node_list) {
   return init_node_list_result;
 }
 
-// Run Method Implementation
+/**
+ * @brief Executes the task by running and optionally outputting each node.
+ *
+ * Iterates through all nodes associated with the task. For each node, it checks if the node has been
+ * initialized in the current cycle. If not, it runs the node once and outputs its data if enabled.
+ * After execution, it resets the node's initialization flag for the next cycle.
+ */
 void Task::Run() {
   // Iterate through all nodes associated with the task
   for (auto& node : *node_list_) {
@@ -60,10 +89,23 @@ void Task::Run() {
   }
 }
 
-// GetTaskSetting Method Implementation
+/**
+ * @brief Retrieves the task's configuration settings.
+ *
+ * @return Constant reference to the TaskSetting structure.
+ *
+ * Provides access to the task's configuration, including task name, timer settings, and node configurations.
+ */
 const TaskSetting& Task::GetTaskSetting() const { return task_setting_; }
 
-// InitNode Method Implementation
+/**
+ * @brief Initializes nodes based on their initialization flags.
+ *
+ * @param node_init_flag Map containing node names and their initialization status.
+ *
+ * This method iterates through the node list and initializes each node that has its initialization flag set to true.
+ * It calls the Init and RunOnce methods on each node and handles their output if enabled.
+ */
 void Task::InitNode(const std::unordered_map<std::string, bool>& node_init_flag) {
   for (auto& node : *node_list_) {
     if (node_init_flag.at(node->GetNodeName())) {

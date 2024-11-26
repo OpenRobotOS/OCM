@@ -1,40 +1,66 @@
 #include <format>
-#include "task/task.hpp"
+#include <iostream>
+#include "ocm/ocm.hpp"
+#include "task/task_base.hpp"
+using namespace openrobot::ocm;
 
 class Task : public openrobot::ocm::TaskBase {
  public:
-  Task() : openrobot::ocm::TaskBase("openrobot_task", openrobot::ocm::TaskType::EXTERNAL_TIMER, 0.0, "openrobot_task") {}
-  void Run() override { std::cout << std::format("[openrobot_task]{}", this->GetLoopDuration()) << std::endl; }
+  // 构造函数，初始化任务名称、定时器类型等
+  Task() : openrobot::ocm::TaskBase("external_timer_test", openrobot::ocm::TimerType::EXTERNAL_TIMER, 0.0, false, false) {}
+
+  // 重写 Run 方法，输出当前任务的循环持续时间
+  void Run() override { std::cout << std::format("[external_timer_test]{}", this->GetLoopDuration()) << std::endl; }
 };
 
+// 定义一个继承自TaskBase的任务类，用于定时任务
 class TaskTimer : public openrobot::ocm::TaskBase {
  public:
+  // 构造函数，初始化任务名称、定时器类型、周期等
   TaskTimer()
-      : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TaskType::INTERNAL_TIMER, 0.0),
-        sem_("OPENROBOT_OCM_SEM_TIMING_GENERATOR", 0),
-        shm_("OPENROBOT_OCM_SHM_TIMING_GENERATOR_DT", sizeof(uint8_t)) {
-    shm_.Lock();
-    *shm_.Get() = 1;  // ms
-    shm_.UnLock();
+      : openrobot::ocm::TaskBase("external_timer_test_timer", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0, false, false),
+        sem_("external_timer_test", 0),                       // 创建信号量
+        shm_("external_timer_test", true, sizeof(uint8_t)) {  // 创建共享内存
+    shm_.Lock();                                              // 锁定共享内存
+    *shm_.Get() = 1;                                          // 设置为1毫秒（任务定时器周期）
+    shm_.UnLock();                                            // 解锁共享内存
   }
-  void Run() override { sem_.IncrementWhenZero(); }
+
+  // 默认析构函数
+  ~TaskTimer() = default;
+
+  // 重写Run方法，每次运行时递增信号量
+  void Run() override {
+    sem_.IncrementWhenZero();  // 如果信号量为0，则递增信号量
+  }
 
  private:
-  openrobot::ocm::SharedMemorySemaphore sem_;
-  openrobot::ocm::SharedMemoryData shm_;
+  openrobot::ocm::SharedMemorySemaphore sem_;      // 信号量
+  openrobot::ocm::SharedMemoryData<uint8_t> shm_;  // 共享内存数据
 };
 
 int main() {
+  // 设置系统配置，任务优先级和 CPU 亲和性
+  SystemSetting system_setting;
+  system_setting.priority = 0;        // 设置任务优先级为0
+  system_setting.cpu_affinity = {0};  // 设置 CPU 亲和性为 CPU 0
+
+  // 创建定时任务 Timer
   TaskTimer timer_task;
-  timer_task.SetPeriod(0.001);
-  timer_task.TaskStart();
+  timer_task.SetPeriod(0.001);           // 设置任务周期为 1 毫秒
+  timer_task.TaskStart(system_setting);  // 启动定时任务
 
+  // 创建普通任务 Task
   Task task;
-  task.SetPeriod(0.001);
-  task.TaskStart();
+  task.SetPeriod(1);               // 设置任务周期为 1 秒
+  task.TaskStart(system_setting);  // 启动任务
 
+  // 程序运行 5 秒钟
   std::this_thread::sleep_for(std::chrono::seconds(5));
-  timer_task.TaskDestroy();
-  task.TaskDestroy();
+
+  // 销毁任务
+  timer_task.TaskDestroy();  // 销毁定时任务
+  task.TaskDestroy();        // 销毁普通任务
+
   return 0;
 }

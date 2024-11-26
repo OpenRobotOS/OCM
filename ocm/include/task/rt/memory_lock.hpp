@@ -19,6 +19,17 @@
 
 namespace openrobot::ocm {
 
+/**
+ * @brief Locks the current and future memory allocations to prevent them from being paged out.
+ *
+ * This function uses `mlockall` to lock all current and future memory allocations, ensuring that the process's
+ * memory remains resident in RAM. It also configures memory allocation behavior by disabling malloc trimming
+ * and mmap usage to enhance real-time performance and reduce latency.
+ *
+ * @return `0` on success, `-1` on failure.
+ *
+ * @note On failure, an error message is printed to `stderr`.
+ */
 inline int lock_memory() {
   if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
     perror("mlockall failed");
@@ -42,6 +53,19 @@ inline int lock_memory() {
   return 0;
 }
 
+/**
+ * @brief Locks memory and pre-faults dynamic memory allocations to prevent page faults.
+ *
+ * This function first locks the process's memory using `lock_memory()`. It then pre-faults memory by
+ * allocating and accessing large memory blocks until no additional page faults occur. This ensures that
+ * all required memory pages are loaded into RAM, reducing the likelihood of page faults during real-time
+ * operations.
+ *
+ * @return `0` on success, `-1` on failure.
+ *
+ * @note On failure, error messages are printed to `stderr`, and any allocated memory is freed before
+ * returning.
+ */
 inline int lock_and_prefault_dynamic() {
   if (lock_memory() != 0) {
     return -1;
@@ -55,7 +79,7 @@ inline int lock_and_prefault_dynamic() {
   size_t prev_majflts = usage.ru_majflt;
   size_t encountered_minflts = 1;
   size_t encountered_majflts = 1;
-  // prefault until you see no more pagefaults
+  // Prefault until no more page faults are encountered
   while (encountered_minflts > 0 || encountered_majflts > 0) {
     char* ptr;
     try {
@@ -89,6 +113,21 @@ inline int lock_and_prefault_dynamic() {
   return 0;
 }
 
+/**
+ * @brief Locks memory and pre-faults a specified amount of dynamic memory.
+ *
+ * This function locks the process's memory using `lock_memory()` and pre-faults a specified amount of
+ * dynamic memory to ensure that the memory is resident in RAM. It allocates aligned memory blocks
+ * to match the system's page size and accesses them to trigger page loading.
+ *
+ * @param process_max_dynamic_memory The maximum amount of dynamic memory (in bytes) to pre-fault.
+ *
+ * @return `0` on success.
+ *
+ * @throws std::runtime_error If memory alignment or allocation fails.
+ *
+ * @note On failure, an error message is printed to `stderr`, and a `std::runtime_error` is thrown.
+ */
 inline int lock_and_prefault_dynamic(size_t process_max_dynamic_memory) {
   if (lock_memory() != 0) {
     return -1;
@@ -99,7 +138,7 @@ inline int lock_and_prefault_dynamic(size_t process_max_dynamic_memory) {
   int res;
   res = posix_memalign(&buf, static_cast<size_t>(pg_sz), process_max_dynamic_memory);
   if (res != 0) {
-    std::cerr << "proc rt init mem aligning failed" << strerror(errno) << std::endl;
+    std::cerr << "proc rt init mem aligning failed: " << strerror(errno) << std::endl;
     throw std::runtime_error("proc rt init mem aligning failed");
   }
   memset(buf, 0, process_max_dynamic_memory);
