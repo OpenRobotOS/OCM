@@ -49,7 +49,7 @@ OCM is a middleware for robot communication, providing a general communication a
 - 参照`examples/debug_anywhere`：数据调试示例。  Refer to `examples/debug_anywhere`: Data debugging example.
 
 ## 2.5 参数 / Parameters
-- 参照`examples/parameter`：提供参数的C++数据类自动生成工具。  Refer to `examples/parameter`: Provides C++ data class auto-generation tools for parameters.
+- 参照`parameter_generator/ocm-parmgen.py`：提供参数的C++数据类自动生成工具。  Refer to `parameter_generator/parameter`: Provides C++ data class auto-generation tools for parameters.
 
 ## 3. 依赖 / Dependencies
 - [LCM](https://lcm-proj.github.io/lcm/)

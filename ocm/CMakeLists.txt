@@ -104,3 +104,16 @@ configure_package_config_file(
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/OCMConfigVersion.cmake"
         DESTINATION lib/cmake/OCM)
+
+# 设置源文件路径
+set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/parameter_generator/dist/ocm-parmgen")
+
+# 设置目标文件路径
+set(TARGET_PATH "/usr/local/bin/")
+
+# 创建一个自定义命令来复制文件
+add_custom_command(
+  TARGET OCM
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy ${SOURCE_FILE} ${TARGET_PATH}
+  COMMENT "Copying ocm-parmgen to /usr/local/bin/")
