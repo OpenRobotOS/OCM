@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 #include <arpa/inet.h>
 #include <cstdint>
@@ -67,4 +67,3 @@ inline std::string ipv4_to_unique_hash_hex(const std::string& ip_str) {
 
   return oss.str();
 }
-// End of Selection

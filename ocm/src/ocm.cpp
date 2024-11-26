@@ -1,4 +1,4 @@
-// Start of Selection
+
 #include <errno.h>
 #include <fcntl.h>
 #include <semaphore.h>
@@ -224,4 +224,3 @@ void SharedMemorySemaphore::Destroy() {
 SharedMemorySemaphore::~SharedMemorySemaphore() = default;
 
 }  // namespace openrobot::ocm
-// End of Selection

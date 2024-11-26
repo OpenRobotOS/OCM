@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 #include <string>
 
@@ -21,4 +21,3 @@ namespace openrobot::ocm {
 inline std::string GetNamePrefix(const std::string& name) { return NAME_PREFIX + name; }
 
 }  // namespace openrobot::ocm
-// End of Selection

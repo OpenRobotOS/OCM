@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <atomic>
@@ -255,4 +255,3 @@ class NodeBase {
 };
 
 }  // namespace openrobot::ocm
-// end of selection

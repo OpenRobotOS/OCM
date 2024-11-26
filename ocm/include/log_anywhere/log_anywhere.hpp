@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <spdlog/async.h>

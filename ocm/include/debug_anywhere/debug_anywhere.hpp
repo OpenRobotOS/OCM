@@ -1,4 +1,4 @@
-// Start of Selection
+
 
 #pragma once
 
@@ -203,4 +203,3 @@ class DebugAnywhere {
 };
 
 }  // namespace openrobot::ocm
-// End of Selection

@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <fcntl.h>
@@ -184,4 +184,3 @@ class RWLockData {
 };
 
 }  // namespace openrobot::ocm
-// End of Selection

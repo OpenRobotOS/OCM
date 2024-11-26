@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <lcm/lcm_coretypes.h>
@@ -177,4 +177,3 @@ uint64_t DebugData::_computeHash(const __lcm_hash_ptr *) {
 }
 
 }  // namespace openrobot::ocm
-// End of Selection

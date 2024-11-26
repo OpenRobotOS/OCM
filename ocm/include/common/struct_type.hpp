@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 #include <string>
 #include <unordered_map>
@@ -160,4 +160,3 @@ struct ExecuterConfig {
 };
 
 }  // namespace openrobot::ocm
-// End of Selection

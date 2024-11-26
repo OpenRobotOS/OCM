@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 #include <cstdint>
 #include <string>
@@ -55,4 +55,3 @@ const std::unordered_map<std::string, TimerType> timer_type_map = {
  * Namespace for OpenRobot's Operation Control Module (OCM).
  */
 }  // namespace openrobot::ocm
-// End of Selection

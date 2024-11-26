@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <memory>
@@ -293,4 +293,3 @@ class SharedMemoryTopic {
 };
 
 }  // namespace openrobot::ocm
-// End of Selection

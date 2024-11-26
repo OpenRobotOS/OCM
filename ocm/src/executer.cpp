@@ -1,4 +1,4 @@
-// Start of Selection
+
 #include "executer/executer.hpp"
 
 #include <algorithm>
@@ -372,4 +372,3 @@ void Executer::Transition() {
 }
 
 }  // namespace openrobot::ocm
-// End of Selection

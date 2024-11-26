@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <linux/types.h>
@@ -225,4 +225,3 @@ inline void set_thread_name(const std::string& name) {
 }
 
 }  // namespace openrobot::ocm::rt
-// End of Selection

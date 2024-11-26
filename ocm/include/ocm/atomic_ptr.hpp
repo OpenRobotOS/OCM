@@ -1,4 +1,4 @@
-// start of selection
+
 #pragma once
 #include <memory>
 
@@ -137,4 +137,3 @@ class AtomicPtr {
 };
 
 }  // namespace openrobot::ocm
-// end of selection

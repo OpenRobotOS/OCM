@@ -1,4 +1,4 @@
-// Start of Selection
+
 #include "task/timer.hpp"
 #include <cerrno>
 #include <cstring>
@@ -162,4 +162,3 @@ void TimerLoop::AddPeriod() {
 }
 
 }  // namespace openrobot::ocm
-// End of Selection

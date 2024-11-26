@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <cassert>
@@ -244,4 +244,3 @@ class SharedMemoryData {
 };
 
 }  // namespace openrobot::ocm
-// end of selection

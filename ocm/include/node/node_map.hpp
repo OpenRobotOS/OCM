@@ -1,4 +1,4 @@
-// start of selection
+
 #pragma once
 
 #include <format>
@@ -101,4 +101,3 @@ class NodeMap final {
 };
 
 }  // namespace openrobot::ocm
-// end of selection

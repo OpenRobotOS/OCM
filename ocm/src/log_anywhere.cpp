@@ -1,4 +1,4 @@
-// Start of Selection
+
 #include "log_anywhere/log_anywhere.hpp"
 
 #include <spdlog/common.h>
@@ -77,4 +77,3 @@ LogAnywhere::~LogAnywhere() {
 }
 
 }  // namespace openrobot::ocm
-// End of Selection

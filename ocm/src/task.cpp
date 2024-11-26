@@ -1,4 +1,4 @@
-// Start of Selection
+
 
 #include "task/task.hpp"
 
@@ -149,4 +149,3 @@ void Task::InitNode(const std::unordered_map<std::string, bool>& node_init_flag)
 }
 
 }  // namespace openrobot::ocm
-// End of Selection

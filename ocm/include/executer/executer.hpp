@@ -1,4 +1,4 @@
-// Start of Selection
+
 
 #pragma once
 
@@ -247,5 +247,3 @@ class Executer : public TaskBase {
 };
 
 }  // namespace openrobot::ocm
-
-// End of Selection

@@ -1,4 +1,4 @@
-// Start of Selection
+
 #include "debug_anywhere/debug_anywhere.hpp"
 #include "common/ip_tool.hpp"
 #include "debug_anywhere/DebugData.hpp"
@@ -141,4 +141,3 @@ DebugAnywhere::DebugAnywhere() = default;
 DebugAnywhere::~DebugAnywhere() = default;
 
 }  // namespace openrobot::ocm
-// End of Selection

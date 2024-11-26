@@ -1,4 +1,4 @@
-// Start of Selection
+
 #pragma once
 
 #include <sys/mman.h>
@@ -169,4 +169,3 @@ inline int lock_and_prefault_dynamic(size_t process_max_dynamic_memory) {
 }
 
 }  // namespace openrobot::ocm
-// End of Selection

@@ -1,4 +1,4 @@
-// start of Selection
+
 #pragma once
 
 #include <sys/timerfd.h>
@@ -452,4 +452,3 @@ class TaskBase {
 };
 
 }  // namespace openrobot::ocm
-// End of Selection

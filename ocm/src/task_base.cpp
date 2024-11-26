@@ -1,4 +1,4 @@
-// Start of Selection
+
 #include "task/task_base.hpp"
 #include "task/rt/sched_rt.hpp"
 #include "task/timer.hpp"
@@ -419,4 +419,3 @@ void TaskBase::SetRtConfig(const SystemSetting& system_setting) {
 }
 
 }  // namespace openrobot::ocm
-// End of Selection
