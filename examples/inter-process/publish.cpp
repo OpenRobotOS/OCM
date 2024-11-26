@@ -6,7 +6,7 @@ int main() {
   // 创建共享内存主题对象
   SharedMemoryTopic topic;
 
-  // 创建数据对象，并设置初始值
+  // 创建数据对象，并设置初始值，必须为LCM消息
   MyData data;
   data.count = 1;  // 设置计数值
 

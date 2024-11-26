@@ -8,7 +8,7 @@ int main() {
   // 创建共享内存主题对象
   SharedMemoryTopic topic;
 
-  // 创建数据对象
+  // 创建数据对象，必须为LCM消息
   MyData data;
   int i;
 
