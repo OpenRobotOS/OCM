@@ -4,6 +4,8 @@
 #include <atomic>
 #include <string>
 #include "common/enum.hpp"
+#include "debug_anywhere/debug_anywhere.hpp"
+#include "log_anywhere/log_anywhere.hpp"
 
 namespace openrobot::ocm {
 
@@ -177,6 +179,8 @@ class NodeBase {
                                    节点的唯一名称标识符 */
   std::atomic<NodeState> state_; /**< The current state of the node, managed atomically for thread safety
                                    节点的当前状态，通过原子操作管理以确保线程安全 */
+  std::shared_ptr<spdlog::logger> log_anywhere_ = GetLogger();
+  DebugAnywhere& debug_anywhere_ = DebugAnywhere::getInstance();
 };
 
 }  // namespace openrobot::ocm
