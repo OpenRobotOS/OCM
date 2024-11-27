@@ -53,6 +53,10 @@ int main() {
   log_config.log_file = "my_logs/executer_test.log";  // 日志文件路径
   log_config.queue_size = 8192;                       // 可选，默认8192
   log_config.thread_count = 1;                        // 可选，默认1
+  log_config.all_priority_enable = true;              // 启用所有线程优先级
+  log_config.all_cpu_affinity_enable = true;          // 启用所有线程CPU亲和性
+  log_config.system_setting.priority = 80;            // 设置系统优先级
+  log_config.system_setting.cpu_affinity = {7};       // 设置系统CPU亲和性
   auto logger_generator = std::make_shared<openrobot::ocm::LogAnywhere>(log_config);
   auto logger = GetLogger();
 

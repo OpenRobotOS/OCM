@@ -17,7 +17,7 @@ int main() {
       true,                    // 启用数据发布
       true,                    // 启用数据接收
       SystemSetting{80, {3}},  // 设置系统配置，包括优先级和CPU亲和性
-      true,                    // 启用自动重新连接
+      true,                    // 启用白名单
       {"topic2"},              // 订阅的主题列表
       10                       // 设置DebugAnywhere的队列大小为10
   });
