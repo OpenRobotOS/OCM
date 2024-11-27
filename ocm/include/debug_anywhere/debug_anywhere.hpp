@@ -54,7 +54,7 @@ struct DebugAnywhereConfig {
 
   /** @brief Set of channels that are allowed when white list is enabled. */
   /** @brief 启用白名单时允许的频道集合。 */
-  std::set<std::string> white_list;
+  std::vector<std::string> white_list;
 
   /** @brief Maximum size of the internal data queue. */
   /** @brief 内部数据队列的最大大小。 */

@@ -1,4 +1,3 @@
-
 #include "debug_anywhere/debug_anywhere.hpp"
 #include "common/ip_tool.hpp"
 #include "debug_anywhere/DebugData.hpp"
@@ -83,7 +82,7 @@ void DebugAnywhereTask::Publish(const std::string& channel, const std::vector<do
   if (!config_.enable) {
     return;
   }
-  if (config_.white_list_enable && config_.white_list.find(channel) == config_.white_list.end()) {
+  if (config_.white_list_enable && std::find(config_.white_list.begin(), config_.white_list.end(), channel) == config_.white_list.end()) {
     return;
   }
   DebugDataStruct* data_ptr = new DebugDataStruct(channel, data);
