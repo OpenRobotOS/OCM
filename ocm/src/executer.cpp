@@ -350,9 +350,10 @@ void Executer::Transition() {
       }
 
       // Log the completion of the transition
-      logger_->info("[Executer] Transition from {} to group {} finished.\n      - Exit node: {} \n      - Enter node: {}",
+      logger_->info("[Executer] Transition from {} to group {} finished.\n      - Exit node: {} \n      - Enter node: {} \n      - Init node: {}",
                     ColorPrint(current_group_.GetValue(), ColorEnum::YELLOW), ColorPrint(target_group_, ColorEnum::YELLOW),
-                    ColorPrint(JointStrSet(exit_node_set_, ","), ColorEnum::BLUE), ColorPrint(JointStrSet(enter_node_set_, ","), ColorEnum::GREEN));
+                    ColorPrint(JointStrSet(exit_node_set_, ","), ColorEnum::BLUE), ColorPrint(JointStrSet(enter_node_set_, ","), ColorEnum::GREEN),
+                    ColorPrint(JointStrSet(all_init_node_set_log, ","), ColorEnum::YELLOW));
 
       // Update the current group and reset transition flags
       current_group_ = target_group_;

@@ -53,7 +53,6 @@ void Task::Init() {
   for (auto& node : node_init_flag_) {
     node.second = true;
   }
-  InitNode(node_init_flag_);
 }
 
 /**
@@ -78,7 +77,6 @@ std::set<std::string> Task::Init(const std::set<std::string>& init_node_list) {
       init_node_list_result.insert(node.first);
     }
   }
-  InitNode(node_init_flag_);
   return init_node_list_result;
 }
 
@@ -96,18 +94,18 @@ void Task::Run() {
   // 遍历与任务关联的所有节点
   for (auto& node : *node_list_) {
     const auto& node_name = node->GetNodeName();
-
     // If the node hasn't been initialized in this cycle, run it once and optionally output
     // 如果节点在本周期尚未初始化，则运行一次并可选择性地输出
-    if (!node_init_flag_[node_name]) {
-      node->RunOnce();
-      if (node_output_flag_[node_name]) {
-        node->Output();
-      }
+    if (node_init_flag_[node_name]) {
+      node->Init();
     } else {
       // Reset the initialization flag for the next cycle
       // 重置下一个周期的初始化标志
       node_init_flag_.at(node_name) = false;
+    }
+    node->RunOnce();
+    if (node_output_flag_[node_name]) {
+      node->Output();
     }
   }
 }
@@ -123,29 +121,5 @@ void Task::Run() {
  * 提供对任务配置的访问，包括任务名称、计时器设置和节点配置。
  */
 const TaskSetting& Task::GetTaskSetting() const { return task_setting_; }
-
-/**
- * @brief Initializes nodes based on their initialization flags.
- * @brief 根据节点的初始化标志初始化节点。
- *
- * @param node_init_flag Map containing node names and their initialization status.
- * @param node_init_flag 包含节点名称及其初始化状态的映射。
- *
- * This method iterates through the node list and initializes each node that has its initialization flag set to true.
- * 该方法遍历节点列表，并初始化每个初始化标志设置为真的节点。
- * It calls the Init and RunOnce methods on each node and handles their output if enabled.
- * 它调用每个节点的 Init 和 RunOnce 方法，并在启用的情况下处理其输出。
- */
-void Task::InitNode(const std::unordered_map<std::string, bool>& node_init_flag) {
-  for (auto& node : *node_list_) {
-    if (node_init_flag.at(node->GetNodeName())) {
-      node->Init();
-      node->RunOnce();
-      if (node_output_flag_[node->GetNodeName()]) {
-        node->Output();
-      }
-    }
-  }
-}
 
 }  // namespace openrobot::ocm
