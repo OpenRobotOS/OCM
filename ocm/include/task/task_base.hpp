@@ -425,8 +425,6 @@ class TaskBase {
                                        上次运行的持续时间 */
   std::atomic<double> loop_duration_; /**< Duration of the last loop
                                        上次循环的持续时间 */
-  std::atomic_bool destroy_flag_;     /**< Flag indicating if the task should be destroyed
-                                       标志，指示任务是否应被销毁 */
   std::atomic_bool run_flag_;         /**< Flag indicating if the task should run
                                        标志，指示任务是否应运行 */
 

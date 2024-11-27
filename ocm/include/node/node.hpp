@@ -37,23 +37,6 @@ class NodeBase {
    *
    * @param node_name The unique name identifier for the node.
    *                  节点的唯一名称标识符。
-   *
-   * @example
-   * @code
-   * class ConcreteNode : public NodeBase {
-   * public:
-   *     ConcreteNode(const std::string& name) : NodeBase(name) {}
-   *     void Init() override { /* Initialization code * / }
-   *     void Execute() override { /* Execution code * / }
-   *     void Output() override { /* Output code * / }
-   *     bool TryEnter() override { /* Enter logic * / }
-   *     bool TryExit() override { /* Exit logic * / }
-   * };
-   *
-   * ConcreteNode node("SensorNode");
-   * node.Init();
-   * node.Execute();
-   * @endcode
    */
   NodeBase(const std::string& node_name) : node_name_(node_name) { state_.store(NodeState::INIT); }
 
@@ -156,51 +139,20 @@ class NodeBase {
   virtual bool TryExit() = 0;
 
   /**
-   * @brief Executes the node's functionality once and updates its state.
-   *        执行节点的功能一次并更新其状态。
-   *
-   * Calls the `Execute` method and sets the node's state to `NodeState::RUNNING`.
-   *
-   * 调用 `Execute` 方法并将节点的状态设置为 `NodeState::RUNNING`。
-   *
-   * @note This method encapsulates a single execution cycle of the node.
-   * @note 此方法封装了节点的单个执行周期。
+   * @brief Virtual method that can be overridden by derived classes to handle
+   *        any post-exit operations after the node has exited its active state.
+   *        虚拟方法，可以由派生类重写以处理节点退出活动状态后的任何后退出操作。
    */
-  void RunOnce() {
-    Execute();
-    SetState(NodeState::RUNNING);
-  }
+  virtual void AfterExit() = 0;
 
   /**
-   * @brief Checks if the node can enter the active state.
-   *        检查节点是否可以进入活动状态。
+   * @brief Sets the state of the node.
+   *        设置节点的状态。
    *
-   * Invokes the `TryEnter` method to determine if the node meets the criteria
-   * to transition to its active state.
-   *
-   * 调用 `TryEnter` 方法以确定节点是否满足过渡到活动状态的条件。
-   *
-   * @return `true` if the node can enter the active state; otherwise, `false`.
-   *         如果节点可以进入活动状态，则返回 `true`；否则，返回 `false`。
+   * @param state The new state to set for the node.
+   *              要为节点设置的新状态。
    */
-  bool EnterCheck() { return TryEnter(); }
-
-  /**
-   * @brief Checks if the node can exit the active state.
-   *        检查节点是否可以退出活动状态。
-   *
-   * Sets the node's state to `NodeState::STANDBY` and invokes the `TryExit` method
-   * to determine if the node meets the criteria to transition out of its active state.
-   *
-   * 将节点的状态设置为 `NodeState::STANDBY` 并调用 `TryExit` 方法以确定节点是否满足过渡出活动状态的条件。
-   *
-   * @return `true` if the node can exit the active state; otherwise, `false`.
-   *         如果节点可以退出活动状态，则返回 `true`；否则，返回 `false`。
-   */
-  bool ExitCheck() {
-    SetState(NodeState::STANDBY);
-    return TryExit();
-  }
+  void SetState(NodeState state) { state_.store(state); }
 
   /**
    * @brief Retrieves the current state of the node.
@@ -208,14 +160,6 @@ class NodeBase {
    *
    * @return The current `NodeState` of the node.
    *         节点当前的 `NodeState`。
-   *
-   * @example
-   * @code
-   * NodeState current_state = node.GetState();
-   * if (current_state == NodeState::RUNNING) {
-   *     // Perform actions based on the running state
-   * }
-   * @endcode
    */
   NodeState GetState() const { return state_.load(); }
 
@@ -225,29 +169,10 @@ class NodeBase {
    *
    * @return A constant reference to the node's name string.
    *         节点名称字符串的常量引用。
-   *
-   * @example
-   * @code
-   * std::string name = node.GetNodeName();
-   * std::cout << "Node Name: " << name << std::endl;
-   * @endcode
    */
   const std::string& GetNodeName() const { return node_name_; }
 
  private:
-  /**
-   * @brief Sets the state of the node.
-   *        设置节点的状态。
-   *
-   * Updates the node's current state to the specified `NodeState`.
-   *
-   * 将节点的当前状态更新为指定的 `NodeState`。
-   *
-   * @param state The new state to set for the node.
-   *              要为节点设置的新状态。
-   */
-  void SetState(NodeState state) { state_.store(state); }
-
   std::string node_name_;        /**< The unique name identifier of the node
                                    节点的唯一名称标识符 */
   std::atomic<NodeState> state_; /**< The current state of the node, managed atomically for thread safety

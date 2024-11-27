@@ -30,6 +30,9 @@ class NodeA : public NodeBase {
     std::cout << "NodeA TryExit" << std::endl;
     return true;
   }
+
+  // 重写AfterExit方法，退出后处理
+  void AfterExit() override { std::cout << "NodeA AfterExit" << std::endl; }
 };
 
 int main() {
@@ -46,8 +49,8 @@ int main() {
   std::cout << "NodeA state: " << static_cast<int>(node_map->GetNodePtr("NodeA")->GetState()) << std::endl;
 
   // 调用节点的进入检查和退出检查方法
-  node_map->GetNodePtr("NodeA")->EnterCheck();
-  node_map->GetNodePtr("NodeA")->ExitCheck();
-
+  node_map->GetNodePtr("NodeA")->TryEnter();
+  node_map->GetNodePtr("NodeA")->TryExit();
+  node_map->GetNodePtr("NodeA")->AfterExit();
   return 0;  // 程序结束
 }

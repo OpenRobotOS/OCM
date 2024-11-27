@@ -222,7 +222,8 @@ TaskBase::TaskBase(const std::string& thread_name, TimerType type, double sleep_
   TaskCreate();
   run_duration_.store(0.0);
   loop_duration_.store(0.0);
-  destroy_flag_.store(false);
+  run_flag_.store(false);
+  loop_run_.store(false);
   state_.store(TaskState::INIT);
 }
 
@@ -297,7 +298,7 @@ void TaskBase::TaskStop(const SystemSetting& system_setting) {
 void TaskBase::TaskDestroy() {
   thread_alive_.store(false);
   loop_run_.store(false);
-  destroy_flag_.store(true);
+  run_flag_.store(true);
   start_sem_.release();
   timer_->Continue();
 
@@ -338,7 +339,7 @@ void TaskBase::Loop() {
       loop_duration_.store(loop_timer.getMs());
       run_timer.start();
 
-      if (!destroy_flag_.load() && run_flag_.load()) {
+      if (run_flag_.load()) {
         Run();
         state_.store(TaskState::RUNNING);
       }

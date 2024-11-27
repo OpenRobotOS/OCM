@@ -305,6 +305,11 @@ void Executer::Transition() {
     }
 
     if (all_current_task_stop_) {
+      // Set all exit nodes to standby
+      for (auto& node : exit_node_set_) {
+        node_map_->GetNodePtr(node)->AfterExit();
+        node_map_->GetNodePtr(node)->SetState(NodeState::STANDBY);
+      }
       // Prepare to start target tasks
       std::vector<std::pair<bool, std::shared_ptr<Task>>> task_list_wait_to_start;
       std::set<std::string> task_set_wait_to_start;
@@ -367,9 +372,9 @@ void Executer::Transition() {
   } else {
     // Check if all exit and enter nodes have completed their checks
     all_node_exit_check_ =
-        std::all_of(exit_node_set_.begin(), exit_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->ExitCheck(); });
+        std::all_of(exit_node_set_.begin(), exit_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->TryExit(); });
     all_node_enter_check_ =
-        std::all_of(enter_node_set_.begin(), enter_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->EnterCheck(); });
+        std::all_of(enter_node_set_.begin(), enter_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->TryEnter(); });
   }
 }
 

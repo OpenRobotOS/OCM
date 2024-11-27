@@ -15,6 +15,7 @@ class NodeA : public openrobot::ocm::NodeBase {
     std::cout << "NodeA TryExit" << std::endl;
     return true;
   }
+  void AfterExit() override { std::cout << "NodeA AfterExit" << std::endl; }
 };
 
 class NodeB : public openrobot::ocm::NodeBase {
@@ -31,6 +32,7 @@ class NodeB : public openrobot::ocm::NodeBase {
     std::cout << "NodeB TryExit" << std::endl;
     return true;
   }
+  void AfterExit() override { std::cout << "NodeB AfterExit" << std::endl; }
 };
 
 class NodeC : public openrobot::ocm::NodeBase {
@@ -47,6 +49,7 @@ class NodeC : public openrobot::ocm::NodeBase {
     std::cout << "NodeC TryExit" << std::endl;
     return true;
   }
+  void AfterExit() override { std::cout << "NodeC AfterExit" << std::endl; }
 };
 
 class NodeD : public openrobot::ocm::NodeBase {
@@ -63,6 +66,7 @@ class NodeD : public openrobot::ocm::NodeBase {
     std::cout << "NodeD TryExit" << std::endl;
     return true;
   }
+  void AfterExit() override { std::cout << "NodeD AfterExit" << std::endl; }
 };
 
 class NodeE : public openrobot::ocm::NodeBase {
@@ -79,4 +83,5 @@ class NodeE : public openrobot::ocm::NodeBase {
     std::cout << "NodeE TryExit" << std::endl;
     return true;
   }
+  void AfterExit() override { std::cout << "NodeE AfterExit" << std::endl; }
 };

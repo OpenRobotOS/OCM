@@ -103,10 +103,11 @@ void Task::Run() {
       // 重置下一个周期的初始化标志
       node_init_flag_.at(node_name) = false;
     }
-    node->RunOnce();
+    node->Execute();
     if (node_output_flag_[node_name]) {
       node->Output();
     }
+    node->SetState(NodeState::RUNNING);
   }
 }
 
