@@ -96,11 +96,8 @@ void Task::Run() {
     const auto& node_name = node->GetNodeName();
     // If the node hasn't been initialized in this cycle, run it once and optionally output
     // 如果节点在本周期尚未初始化，则运行一次并可选择性地输出
-    if (node_init_flag_[node_name]) {
+    if (node_init_flag_.at(node_name)) {
       node->Init();
-    } else {
-      // Reset the initialization flag for the next cycle
-      // 重置下一个周期的初始化标志
       node_init_flag_.at(node_name) = false;
     }
     node->Execute();
