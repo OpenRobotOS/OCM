@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <iostream>
 #include <vector>
+#include "task/rt/sched_rt.hpp"
 
 namespace openrobot::ocm {
 
@@ -26,6 +27,14 @@ namespace openrobot::ocm {
  * @note 如果记录器初始化失败，将错误消息打印到标准错误流。
  */
 LogAnywhere::LogAnywhere(const LoggerConfig& config) {
+  rt::set_thread_name("log_anywhere");
+  pid_t pid = gettid();
+  if (config.all_priority_enable) {
+    rt::set_thread_priority(pid, config.system_setting.priority, SCHED_FIFO);
+  }
+  if (config.all_cpu_affinity_enable) {
+    rt::set_thread_cpu_affinity(pid, config.system_setting.cpu_affinity);
+  }
   try {
     // Ensure that the log directory exists
     std::filesystem::create_directories(std::filesystem::path(config.log_file).parent_path());

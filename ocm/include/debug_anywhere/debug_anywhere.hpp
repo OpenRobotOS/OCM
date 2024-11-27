@@ -55,6 +55,10 @@ struct DebugAnywhereConfig {
   /** @brief Set of channels that are allowed when white list is enabled. */
   /** @brief 启用白名单时允许的频道集合。 */
   std::set<std::string> white_list;
+
+  /** @brief Maximum size of the internal data queue. */
+  /** @brief 内部数据队列的最大大小。 */
+  size_t queue_size;
 };
 
 /**
@@ -95,7 +99,7 @@ class DebugAnywhereTask {
    * @param queue_size Maximum size of the internal data queue.
    * @param queue_size 内部数据队列的最大大小。
    */
-  DebugAnywhereTask(const DebugAnywhereConfig& config, const size_t queue_size);
+  DebugAnywhereTask(const DebugAnywhereConfig& config);
 
   /**
    * @brief Destructor that stops the task and joins the thread.
@@ -172,7 +176,7 @@ class DebugAnywhere {
    * @param queue_size Maximum size of the internal data queue.
    * @param queue_size 内部数据队列的最大大小。
    */
-  static void initialize(const DebugAnywhereConfig& config, const size_t queue_size);
+  static void initialize(const DebugAnywhereConfig& config);
 
   /**
    * @brief Publishes debug data to a specified channel.

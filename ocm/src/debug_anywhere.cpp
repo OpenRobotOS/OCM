@@ -25,8 +25,7 @@ DebugDataStruct::DebugDataStruct(const std::string& t, const std::vector<double>
  * @param queue_size Maximum size of the internal data queue.
  * @param queue_size 内部数据队列的最大大小。
  */
-DebugAnywhereTask::DebugAnywhereTask(const DebugAnywhereConfig& config, const size_t queue_size)
-    : config_(config), data_queue_(queue_size), sem_(0), running_(false) {
+DebugAnywhereTask::DebugAnywhereTask(const DebugAnywhereConfig& config) : config_(config), data_queue_(config.queue_size), sem_(0), running_(false) {
   running_.store(true);
   thread_ = std::thread([this] { Loop(); });
 }
@@ -114,9 +113,7 @@ DebugAnywhere& DebugAnywhere::getInstance() {
  * @param queue_size Maximum size of the internal data queue.
  * @param queue_size 内部数据队列的最大大小。
  */
-void DebugAnywhere::initialize(const DebugAnywhereConfig& config, const size_t queue_size) {
-  getInstance().task_ = std::make_shared<DebugAnywhereTask>(config, queue_size);
-}
+void DebugAnywhere::initialize(const DebugAnywhereConfig& config) { getInstance().task_ = std::make_shared<DebugAnywhereTask>(config); }
 
 /**
  * @brief Publishes debug data to a specified channel.

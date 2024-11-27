@@ -9,7 +9,7 @@
 #include <memory>
 #include <set>
 #include <string>
-
+#include "common/struct_type.hpp"
 namespace openrobot::ocm {
 
 /**
@@ -146,6 +146,9 @@ struct LoggerConfig {
   std::string log_file = "logs/log.txt"; /**< Path to the log file 日志文件路径 */
   size_t queue_size = 8192;              /**< Size of the asynchronous logging queue 异步记录队列的大小 */
   size_t thread_count = 1;               /**< Number of backend threads for logging 用于记录的后端线程数量 */
+  bool all_priority_enable = false;      /**< Whether to enable priority for all threads 是否为所有线程启用优先级 */
+  bool all_cpu_affinity_enable = false;  /**< Whether to enable CPU affinity for all threads 是否为所有线程启用CPU亲和性 */
+  SystemSetting system_setting;          /**< System settings for thread priority and CPU affinity 线程优先级和CPU亲和性设置 */
 };
 
 /**

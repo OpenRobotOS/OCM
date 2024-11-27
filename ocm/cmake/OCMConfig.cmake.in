@@ -27,8 +27,8 @@ find_path(OCM_TARGETS_PATH
 
 # 检查是否找到文件并包含
 if(OCM_TARGETS_PATH)
-  message(STATUS "找到 OCMTargets.cmake 文件在: ${OCM_TARGETS_PATH}")
+  message(STATUS "Find OCMTargets.cmake in ${OCM_TARGETS_PATH}")
   include("${OCM_TARGETS_PATH}/OCMTargets.cmake")
 else()
-  message(FATAL_ERROR "在所有 CMAKE_PREFIX_PATH 路径中未找到 OCMTargets.cmake 文件。")
+  message(FATAL_ERROR "OCMTargets.cmake not found in all CMAKE_PREFIX_PATH paths.")
 endif()
