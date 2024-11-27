@@ -174,13 +174,14 @@ class NodeBase {
    */
   const std::string& GetNodeName() const { return node_name_; }
 
+  std::shared_ptr<spdlog::logger> log_anywhere_ = GetLogger();  // 获取日志实例
+  DebugAnywhere& debug_anywhere_ = DebugAnywhere::getInstance();
+
  private:
   std::string node_name_;        /**< The unique name identifier of the node
                                    节点的唯一名称标识符 */
   std::atomic<NodeState> state_; /**< The current state of the node, managed atomically for thread safety
                                    节点的当前状态，通过原子操作管理以确保线程安全 */
-  std::shared_ptr<spdlog::logger> log_anywhere_ = GetLogger();
-  DebugAnywhere& debug_anywhere_ = DebugAnywhere::getInstance();
 };
 
 }  // namespace openrobot::ocm
