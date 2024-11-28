@@ -106,7 +106,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
         DESTINATION lib/cmake/OCM)
 
 # 设置源文件路径
-set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/parameter_generator/dist/ocm-parmgen")
+set(SOURCE_FILE
+    "${CMAKE_SOURCE_DIR}/python/parameter_generator/dist/ocm-parmgen")
 
 # 设置目标文件路径
 set(TARGET_PATH "/usr/local/bin/")

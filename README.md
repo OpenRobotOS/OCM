@@ -13,7 +13,8 @@ OCM 是一个用于机器人通信的中间件，提供了一个通用的通信�
 - 参照`examples/intra-process`：进程内通信示例。
 
 #### 2.1.2 进程间通信
-- `ocm/shared_memory_topic.hpp`：共享内存主题，提供共享内存发布订阅功能。
+- `ocm/shared_memory_topic.hpp`：共享内存话题，提供共享内存发布订阅功能。
+- `ocm/python/shared_memory_topic`：共享内存话题Python实现。
 - 参照`examples/inter-process`：进程间通信示例。
 
 #### 2.1.3 设备间通信
@@ -43,7 +44,7 @@ OCM 是一个用于机器人通信的中间件，提供了一个通用的通信�
 - [spdlog](https://github.com/gabime/spdlog)  
 - 参照`examples/log_anywhere`：日志示例。
 
-## 2.4 数据调试 / Data Debugging
+## 2.4 数据调试
 - `debug_anywhere/debug_anywhere.hpp`：提供进程内共享的调试数据异步发布功能。
 - 参照`examples/debug_anywhere`：数据调试示例。
 
@@ -61,11 +62,14 @@ OCM 是一个用于机器人通信的中间件，提供了一个通用的通信�
 - gcc >= 13
 - cmake >= 3.10
 
-## 5. 编译
+## 5. 编译安装
 ```bash
 mkdir build
 cd build
 cmake ..
 sudo make install -j # 默认安装到/opt/openrobotlib/ocm，默认依赖位置/opt/openrobotlib/third_party
-```
+# 可选python共享内存话题安装
+pip install posix_ipc
+cd ocm/python/shared_memory_topic
+pip install .
 ```

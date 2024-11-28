@@ -18,6 +18,10 @@ int main() {
     topic.Subscribe<MyData>("topic1", "shm1", [](const MyData& msg) {
       // 当接收到数据时，输出数据的count值
       std::cout << "Received data: " << msg.count << std::endl;
+      for (int i = 0; i < 10; i++) {
+        std::cout << msg.values[i] << " ";
+      }
+      std::cout << std::endl;
     });
   }
 
