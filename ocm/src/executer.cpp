@@ -1,4 +1,3 @@
-
 #include "executer/executer.hpp"
 
 #include <algorithm>
@@ -8,22 +7,6 @@
 
 namespace openrobot::ocm {
 
-// Constructor Implementation
-/**
- * @brief Constructs an Executer instance with the given configuration and node map.
- * @brief 使用给定的配置和节点映射构造一个 Executer 实例。
- *
- * Initializes the base TaskBase class, sets up the logger, configures the timer period,
- * and starts the task using the provided system settings.
- * 初始化基类 TaskBase 类，设置日志记录器，配置定时器周期，并使用提供的系统设置启动任务。
- *
- * @param executer_config Configuration settings for the Executer.
- * @param executer_config Executer 的配置设置。
- * @param node_map Shared pointer to the NodeMap for retrieving node pointers.
- * @param node_map 用于检索节点指针的 NodeMap 的共享指针。
- * @param desired_group_topic_name Name of the desired group topic.
- * @param desired_group_topic_name 期望组主题的名称。
- */
 Executer::Executer(const ExecuterConfig& executer_config, const std::shared_ptr<NodeMap>& node_map, const std::string& desired_group_topic_name)
     : TaskBase(executer_config.executer_setting.package_name, executer_config.executer_setting.timer_setting.timer_type, 0.0,
                executer_config.executer_setting.all_priority_enable, executer_config.executer_setting.all_cpu_affinity_enable),
@@ -40,341 +23,252 @@ Executer::Executer(const ExecuterConfig& executer_config, const std::shared_ptr<
       task_start_flag_(true),
       all_current_task_stop_(false),
       desired_group_topic_name_(desired_group_topic_name) {
-  // Initialize logger
-  logger_ = GetLogger();
-
-  // Initialize desired group topic
-  desired_group_topic_ = std::make_shared<SharedMemoryTopic>();
-
-  // Set the timer period based on the executer configuration
-  SetPeriod(executer_config_.executer_setting.timer_setting.period);
-
-  // Start the task with the specified system settings
-  TaskStart(executer_config_.executer_setting.system_setting);
+  logger_ = GetLogger();                                              // 获取日志记录器
+  desired_group_topic_ = std::make_shared<SharedMemoryTopic>();       // 创建共享内存主题
+  SetPeriod(executer_config_.executer_setting.timer_setting.period);  // 设置周期
+  TaskStart(executer_config_.executer_setting.system_setting);        // 启动任务
 }
 
-/**
- * @brief Exits all tasks gracefully by stopping and destroying them.
- * @brief 通过停止和销毁所有任务来优雅地退出。
- *
- * Iterates through both resident and standby task lists, stopping each task with idle system settings
- * and then destroying the task instance. Introduces a brief sleep to ensure all tasks have been
- * properly terminated.
- * 遍历驻留和待命任务列表，使用空闲系统设置停止每个任务，然后销毁任务实例。引入短暂的休眠以确保所有任务已正确终止。
- */
 void Executer::ExitAllTask() {
-  // Stop and destroy all tasks in the resident group
+  // 停止所有常驻组任务
   for (auto& task : resident_group_task_list_) {
-    task.second->TaskStop(executer_config_.executer_setting.idle_system_setting);
-    task.second->TaskDestroy();
+    task.second->TaskStop(executer_config_.executer_setting.idle_system_setting);  // 停止任务
+    task.second->TaskDestroy();                                                    // 销毁任务
   }
 
-  // Stop and destroy all tasks in the standby group
+  // 停止所有待命组任务
   for (auto& task : standby_group_task_list_) {
-    task.second->TaskStop(executer_config_.executer_setting.idle_system_setting);
-    task.second->TaskDestroy();
+    task.second->TaskStop(executer_config_.executer_setting.idle_system_setting);  // 停止任务
+    task.second->TaskDestroy();                                                    // 销毁任务
   }
 
-  // Sleep briefly to ensure all tasks have been properly terminated
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(1));  // 等待1秒
 }
 
-// CreateTask Method Implementation
-/**
- * @brief Creates tasks for both resident and standby groups based on the configuration.
- * @brief 根据配置为驻留组和待命组创建任务。
- *
- * For each task in the resident and standby groups, retrieves the associated nodes from the NodeMap,
- * initializes a Task instance, and adds it to the respective task list. Also logs the addition
- * of each task and populates the set of exclusive task groups.
- * 对于驻留组和待命组中的每个任务，从 NodeMap 中检索相关节点，初始化 Task
- * 实例，并将其添加到相应的任务列表。还记录每个任务的添加并填充独占任务组的集合。
- */
 void Executer::CreateTask() {
-  // Create tasks for the resident group
+  // 创建常驻组任务
   for (auto& task_setting : executer_config_.task_list.resident_group) {
-    // Create a shared pointer to a vector of NodeBase pointers
     std::shared_ptr<std::vector<std::shared_ptr<NodeBase>>> node_list = std::make_shared<std::vector<std::shared_ptr<NodeBase>>>();
 
-    // Retrieve and add each node to the node list
+    // 获取节点列表
     for (auto& node_config : task_setting.second.node_list) {
-      node_list->emplace_back(node_map_->GetNodePtr(node_config.node_name));
+      node_list->emplace_back(node_map_->GetNodePtr(node_config.node_name));  // 添加节点指针
     }
 
-    // Initialize the Task instance and add it to the resident group task list
+    // 创建任务并添加到常驻组任务列表
     resident_group_task_list_[task_setting.second.task_name] =
         std::make_shared<Task>(task_setting.second, node_list, executer_config_.executer_setting.all_priority_enable,
                                executer_config_.executer_setting.all_cpu_affinity_enable);
 
-    // Log the addition of the task
-    logger_->debug("[Executer] Task {} added.", task_setting.second.task_name);
+    logger_->info("[Executer] Task {} added.", task_setting.second.task_name);  // 记录任务添加信息
   }
 
-  // Create tasks for the standby group
+  // 创建待命组任务
   for (auto& task_setting : executer_config_.task_list.standby_group) {
-    // Create a shared pointer to a vector of NodeBase pointers
     std::shared_ptr<std::vector<std::shared_ptr<NodeBase>>> node_list = std::make_shared<std::vector<std::shared_ptr<NodeBase>>>();
 
-    // Retrieve and add each node to the node list
+    // 获取节点列表
     for (auto& node_config : task_setting.second.node_list) {
-      node_list->emplace_back(node_map_->GetNodePtr(node_config.node_name));
+      node_list->emplace_back(node_map_->GetNodePtr(node_config.node_name));  // 添加节点指针
     }
 
-    // Initialize the Task instance and add it to the standby group task list
+    // 创建任务并添加到待命组任务列表
     standby_group_task_list_[task_setting.second.task_name] =
         std::make_shared<Task>(task_setting.second, node_list, executer_config_.executer_setting.all_priority_enable,
                                executer_config_.executer_setting.all_cpu_affinity_enable);
 
-    // Log the addition of the task
-    logger_->debug("[Executer] Task {} added.", task_setting.second.task_name);
+    logger_->info("[Executer] Task {} added.", task_setting.second.task_name);  // 记录任务添加信息
   }
 
-  // Add exclusive task groups to the set
+  // 添加独占任务组
   for (auto& exclusive_task_group : executer_config_.exclusive_task_group) {
-    logger_->debug("[Executer] Exclusive group {} added.", exclusive_task_group.second.group_name);
-    exclusive_group_set_.insert(exclusive_task_group.second.group_name);
+    logger_->info("[Executer] Exclusive group {} added.", exclusive_task_group.second.group_name);  // 记录独占组添加信息
+    exclusive_group_set_.insert(exclusive_task_group.second.group_name);                            // 添加到独占组集合
   }
 }
 
-// InitTask Method Implementation
-/**
- * @brief Initializes all tasks in the resident group, ensuring that pre-requisite nodes are ready.
- * @brief 初始化驻留组中的所有任务，确保前置节点已准备就绪。
- *
- * For each task in the resident group, checks if all pre-nodes are running or if there are no pre-nodes.
- * If the conditions are met, initializes and starts the task. Continues this process until all tasks
- * have been successfully started.
- * 对驻留组中的每个任务，检查所有前置节点是否正在运行或是否没有前置节点。如果满足条件，初始化并启动任务。继续此过程，直到所有任务成功启动。
- */
 void Executer::InitTask() {
-  // Vector to hold tasks waiting to start, along with a flag indicating if they've been started
-  std::vector<std::pair<bool, std::shared_ptr<Task>>> task_list_wait_to_start;
-  // Set to keep track of task names waiting to start
-  std::set<std::string> task_set_wait_to_start;
+  std::vector<std::pair<bool, std::shared_ptr<Task>>> task_list_wait_to_start;  // 等待启动的任务列表
+  std::set<std::string> task_set_wait_to_start;                                 // 等待启动的任务集合
 
-  // Prepare the list of tasks waiting to start
+  // 初始化等待启动的任务列表
   for (auto& task_ptr : resident_group_task_list_) {
-    task_list_wait_to_start.emplace_back(std::make_pair(false, task_ptr.second));
-    task_set_wait_to_start.insert(task_ptr.second->GetTaskName());
+    task_list_wait_to_start.emplace_back(std::make_pair(false, task_ptr.second));  // 添加任务指针
+    task_set_wait_to_start.insert(task_ptr.second->GetTaskName());                 // 添加任务名称
   }
 
-  // Continuously check if tasks can be started
+  // 等待所有任务启动
   while (!task_set_wait_to_start.empty()) {
     for (auto& task : task_list_wait_to_start) {
-      if (!task.first) {
-        bool is_pre_node_empty = task.second->GetTaskSetting().launch_setting.pre_node.empty();
-        const auto& pre_node_list = task.second->GetTaskSetting().launch_setting.pre_node;
+      if (!task.first) {                                                                         // 如果任务尚未启动
+        bool is_pre_node_empty = task.second->GetTaskSetting().launch_setting.pre_node.empty();  // 检查前置节点是否为空
+        const auto& pre_node_list = task.second->GetTaskSetting().launch_setting.pre_node;       // 获取前置节点列表
 
-        // Check if all pre-nodes are running
+        // 检查前置节点是否准备就绪
         bool is_pre_node_ready = std::all_of(pre_node_list.begin(), pre_node_list.end(), [this](const std::string& pre_node_name) {
-          return node_map_->GetNodePtr(pre_node_name)->GetState() == NodeState::RUNNING;
+          return node_map_->GetNodePtr(pre_node_name)->GetState() == NodeState::RUNNING;  // 检查节点状态
         });
 
-        // If pre-nodes are ready or there are no pre-nodes, initialize and start the task
+        // 如果前置节点为空或准备就绪，启动任务
         if (is_pre_node_empty || is_pre_node_ready) {
-          task.first = true;                                                       // Mark task as started
-          task.second->Init();                                                     // Initialize the task
-          task.second->TaskStart(task.second->GetTaskSetting().system_setting);    // Start the task
-          task_set_wait_to_start.erase(task.second->GetTaskName());                // Remove from waiting set
-          logger_->info("[Executer] Task {} start.", task.second->GetTaskName());  // Log the start
+          task.first = true;                                                       // 标记任务为已启动
+          task.second->Init();                                                     // 初始化任务
+          task.second->TaskStart(task.second->GetTaskSetting().system_setting);    // 启动任务
+          task_set_wait_to_start.erase(task.second->GetTaskName());                // 从等待集合中移除任务
+          logger_->info("[Executer] Task {} start.", task.second->GetTaskName());  // 记录任务启动信息
         }
       }
     }
-    // Sleep briefly to prevent busy-waiting
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));  // 等待1毫秒
   }
 }
 
-// Run Method Implementation
-/**
- * @brief Executes the main run loop for the Executer.
- * @brief 执行 Executer 的主运行循环。
- *
- * This method is called periodically based on the configured timer period. It checks for any
- * required transitions between task groups and handles them accordingly.
- * 此方法根据配置的定时器周期定期调用。它检查任务组之间是否需要任何过渡，并相应地处理它们。
- */
 void Executer::Run() {
+  // 订阅期望组数据
   desired_group_topic_->SubscribeNoWait<DesiredGroupData>(
       desired_group_topic_name_, desired_group_topic_name_,
-      [this](const DesiredGroupData& desired_group) { desired_group_ = desired_group.desired_group; });
-  // Check if a transition is required
-  TransitionCheck();
+      [this](const DesiredGroupData& desired_group) { desired_group_ = desired_group.desired_group; });  // 更新期望组
+  TransitionCheck();                                                                                     // 检查状态转换
 
-  // If a transition is in progress, handle it
   if (is_transition_) {
-    Transition();
+    Transition();  // 执行状态转换
   }
 }
 
-/**
- * @brief Checks if a transition between task groups is required.
- * @brief 检查任务组之间是否需要过渡。
- *
- * Determines whether the desired task group differs from the current group. If a transition is needed
- * and the desired group is an exclusive group, prepares the necessary sets and flags to handle the transition.
- * Logs an error if the desired group is not exclusive.
- * 确定期望的任务组是否与当前组不同。如果需要过渡且期望的组是独占组，则准备必要的集合和标志以处理过渡。如果期望的组不是独占组，则记录错误。
- */
 void Executer::TransitionCheck() {
-  if (!is_transition_) {
-    const auto& desired_group = desired_group_.GetValue();
-    const auto& current_group = current_group_.GetValue();
+  if (!is_transition_) {                                    // 如果当前不在转换状态
+    const auto& desired_group = desired_group_.GetValue();  // 获取期望组
+    const auto& current_group = current_group_.GetValue();  // 获取当前组
 
-    // Check if the desired group is different from the current group
-    if (desired_group != current_group) {
-      // Check if the desired group is an exclusive group
-      if (exclusive_group_set_.find(desired_group) != exclusive_group_set_.end()) {
-        // Clear all existing task and node sets
-        target_task_set_.clear();
-        current_task_set_.clear();
-        target_node_set_.clear();
-        current_node_set_.clear();
-        enter_node_set_.clear();
-        exit_node_set_.clear();
+    if (desired_group != current_group) {                                            // 如果期望组与当前组不同
+      if (exclusive_group_set_.find(desired_group) != exclusive_group_set_.end()) {  // 检查期望组是否为独占组
+        target_task_set_.clear();                                                    // 清空目标任务集合
+        current_task_set_.clear();                                                   // 清空当前任务集合
+        target_node_set_.clear();                                                    // 清空目标节点集合
+        current_node_set_.clear();                                                   // 清空当前节点集合
+        enter_node_set_.clear();                                                     // 清空进入节点集合
+        exit_node_set_.clear();                                                      // 清空退出节点集合
 
-        // Populate target task and node sets based on the desired group
-        const auto& exclusive_group_config = executer_config_.exclusive_task_group;
+        const auto& exclusive_group_config = executer_config_.exclusive_task_group;  // 获取独占组配置
         for (auto& task_config : exclusive_group_config.at(desired_group).task_list) {
-          const auto& task_name = task_config.second.task_name;
-          target_task_set_.insert(standby_group_task_list_.at(task_name));
+          const auto& task_name = task_config.second.task_name;             // 获取任务名称
+          target_task_set_.insert(standby_group_task_list_.at(task_name));  // 添加目标任务
           for (auto& node : executer_config_.task_list.standby_group.at(task_name).node_list) {
-            target_node_set_.insert(node.node_name);
+            target_node_set_.insert(node.node_name);  // 添加目标节点
           }
         }
 
-        // If there's a current group, populate the current task and node sets
-        if (current_group != "empty_init") {
+        if (current_group != "empty_init") {  // 如果当前组不为空初始化
           for (auto& task_config : exclusive_group_config.at(current_group).task_list) {
-            const auto& task_name = task_config.second.task_name;
-            current_task_set_.insert(standby_group_task_list_.at(task_name));
+            const auto& task_name = task_config.second.task_name;              // 获取任务名称
+            current_task_set_.insert(standby_group_task_list_.at(task_name));  // 添加当前任务
             for (auto& node : executer_config_.task_list.standby_group.at(task_name).node_list) {
-              current_node_set_.insert(node.node_name);
+              current_node_set_.insert(node.node_name);  // 添加当前节点
             }
           }
         }
 
-        // Determine which nodes need to exit and which need to enter
+        // 计算退出节点和进入节点
         std::set_difference(current_node_set_.begin(), current_node_set_.end(), target_node_set_.begin(), target_node_set_.end(),
-                            std::inserter(exit_node_set_, exit_node_set_.begin()));
+                            std::inserter(exit_node_set_, exit_node_set_.begin()));  // 计算退出节点
 
         std::set_difference(target_node_set_.begin(), target_node_set_.end(), current_node_set_.begin(), current_node_set_.end(),
-                            std::inserter(enter_node_set_, enter_node_set_.begin()));
+                            std::inserter(enter_node_set_, enter_node_set_.begin()));  // 计算进入节点
 
-        // Reset transition-related flags
-        all_node_exit_check_ = false;
-        all_node_enter_check_ = false;
-        is_transition_ = true;
-        task_stop_flag_ = true;
-        task_start_flag_ = true;
-        all_current_task_stop_ = false;
-        target_group_ = desired_group;
+        all_node_exit_check_ = false;    // 重置退出节点检查标志
+        all_node_enter_check_ = false;   // 重置进入节点检查标志
+        is_transition_ = true;           // 设置为转换状态
+        task_stop_flag_ = true;          // 设置任务停止标志
+        task_start_flag_ = true;         // 设置任务启动标志
+        all_current_task_stop_ = false;  // 重置当前任务停止标志
+        target_group_ = desired_group;   // 设置目标组
 
-        // Log the transition initiation
         logger_->info("[Executer] Transition from group {} to group {}", ColorPrint(current_group, ColorEnum::YELLOW),
-                      ColorPrint(desired_group, ColorEnum::YELLOW));
+                      ColorPrint(desired_group, ColorEnum::YELLOW));  // 记录转换信息
       } else {
-        // If the desired group is not exclusive, log an error
-        if (desired_group_history_ != desired_group) {
-          desired_group_history_ = desired_group;
-          logger_->error("[Executer] Target group {} is not an exclusive group.", ColorPrint(desired_group, ColorEnum::RED));
+        if (desired_group_history_ != desired_group) {  // 如果历史期望组与当前期望组不同
+          desired_group_history_ = desired_group;       // 更新历史期望组
+          logger_->error("[Executer] Target group {} is not an exclusive group.", ColorPrint(desired_group, ColorEnum::RED));  // 记录错误信息
         }
       }
     }
   }
 }
 
-// Transition Method Implementation
-/**
- * @brief Handles the transition between task groups.
- * @brief 处理任务组之间的过渡。
- *
- * Manages the stopping of current tasks, starting of target tasks, and updating of the current group.
- * Ensures that all nodes have exited and entered as required before completing the transition.
- * Logs the transition details and updates internal state flags accordingly.
- * 管理当前任务的停止，目标任务的启动以及当前组的更新。确保所有节点在完成过渡之前已按要求退出和进入。记录过渡细节并相应地更新内部状态标志。
- */
 void Executer::Transition() {
-  if (all_node_exit_check_ && all_node_enter_check_) {
-    if (task_stop_flag_) {
-      // Stop all current tasks
-      task_stop_flag_ = false;
+  if (all_node_exit_check_ && all_node_enter_check_) {  // 如果所有节点退出和进入检查通过
+    if (task_stop_flag_) {                              // 如果任务停止标志为真
+      task_stop_flag_ = false;                          // 重置任务停止标志
       for (auto& task : current_task_set_) {
-        task->TaskStop(executer_config_.executer_setting.idle_system_setting);
+        task->TaskStop(executer_config_.executer_setting.idle_system_setting);  // 停止当前任务
       }
     }
 
-    if (all_current_task_stop_) {
-      // Set all exit nodes to standby
+    if (all_current_task_stop_) {  // 如果所有当前任务已停止
       for (auto& node : exit_node_set_) {
-        node_map_->GetNodePtr(node)->AfterExit();
-        node_map_->GetNodePtr(node)->SetState(NodeState::STANDBY);
+        node_map_->GetNodePtr(node)->AfterExit();                   // 执行退出后操作
+        node_map_->GetNodePtr(node)->SetState(NodeState::STANDBY);  // 设置节点状态为待命
       }
-      // Prepare to start target tasks
-      std::vector<std::pair<bool, std::shared_ptr<Task>>> task_list_wait_to_start;
-      std::set<std::string> task_set_wait_to_start;
+      std::vector<std::pair<bool, std::shared_ptr<Task>>> task_list_wait_to_start;  // 等待启动的任务列表
+      std::set<std::string> task_set_wait_to_start;                                 // 等待启动的任务集合
       for (auto& task_ptr : target_task_set_) {
-        task_list_wait_to_start.emplace_back(std::make_pair(false, task_ptr));
-        task_set_wait_to_start.insert(task_ptr->GetTaskName());
+        task_list_wait_to_start.emplace_back(std::make_pair(false, task_ptr));  // 添加任务指针
+        task_set_wait_to_start.insert(task_ptr->GetTaskName());                 // 添加任务名称
       }
-      std::set<std::string> all_init_node_set_log;
+      std::set<std::string> all_init_node_set_log;  // 记录所有初始化节点集合
 
-      // Initialize and start target tasks
+      // 等待所有目标任务启动
       while (!task_set_wait_to_start.empty()) {
         for (auto& task : task_list_wait_to_start) {
-          const auto& task_name = task.second->GetTaskName();
-          if (!task.first) {
-            const auto& task_setting = executer_config_.exclusive_task_group.at(target_group_).task_list.at(task_name);
-            bool is_pre_node_empty = task_setting.pre_node.empty();
-            const auto& pre_node_list = task_setting.pre_node;
+          const auto& task_name = task.second->GetTaskName();                                                            // 获取任务名称
+          if (!task.first) {                                                                                             // 如果任务尚未启动
+            const auto& task_setting = executer_config_.exclusive_task_group.at(target_group_).task_list.at(task_name);  // 获取任务设置
+            bool is_pre_node_empty = task_setting.pre_node.empty();                                                      // 检查前置节点是否为空
+            const auto& pre_node_list = task_setting.pre_node;                                                           // 获取前置节点列表
 
-            // Combine forced init nodes and entering nodes
+            // 获取强制初始化节点集合
             std::set<std::string> force_init_node_set(task_setting.force_init_node.begin(), task_setting.force_init_node.end());
-            std::set<std::string> all_init_node_set;
+            std::set<std::string> all_init_node_set;  // 所有初始化节点集合
             std::set_union(force_init_node_set.begin(), force_init_node_set.end(), enter_node_set_.begin(), enter_node_set_.end(),
-                           std::inserter(all_init_node_set, all_init_node_set.begin()));
+                           std::inserter(all_init_node_set, all_init_node_set.begin()));  // 合并初始化节点集合
 
-            // Check if all pre-nodes are ready
+            // 检查前置节点是否准备就绪
             bool is_pre_node_ready = std::all_of(pre_node_list.begin(), pre_node_list.end(), [this](const std::string& pre_node_name) {
-              return node_map_->GetNodePtr(pre_node_name)->GetState() == NodeState::RUNNING;
+              return node_map_->GetNodePtr(pre_node_name)->GetState() == NodeState::RUNNING;  // 检查节点状态
             });
 
-            // If pre-nodes are ready or there are no pre-nodes, initialize and start the task
+            // 如果前置节点为空或准备就绪，启动任务
             if (is_pre_node_empty || is_pre_node_ready) {
-              task.first = true;                                                     // Mark task as started
-              auto init_node_set = task.second->Init(all_init_node_set);             // Initialize with required nodes
-              task.second->TaskStart(task.second->GetTaskSetting().system_setting);  // Start the task
-              all_init_node_set_log.insert(init_node_set.begin(), init_node_set.end());
-              task_set_wait_to_start.erase(task.second->GetTaskName());                // Remove from waiting set
-              logger_->info("[Executer] Task {} start.", task.second->GetTaskName());  // Log the start
+              task.first = true;                                                         // 标记任务为已启动
+              auto init_node_set = task.second->Init(all_init_node_set);                 // 初始化任务并获取初始化节点集合
+              task.second->TaskStart(task.second->GetTaskSetting().system_setting);      // 启动任务
+              all_init_node_set_log.insert(init_node_set.begin(), init_node_set.end());  // 记录初始化节点
+              task_set_wait_to_start.erase(task.second->GetTaskName());                  // 从等待集合中移除任务
+              logger_->info("[Executer] Task {} start.", task.second->GetTaskName());    // 记录任务启动信息
             }
           }
         }
-        // Sleep briefly to prevent busy-waiting
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));  // 等待1毫秒
       }
 
-      // Log the completion of the transition
       logger_->info(
           "[Executer] Transition from {} to group {} finished.\n      Node State:\n                 - Exit node: {} \n                 - Enter node: {} \n                 - Init node: {}",
           ColorPrint(current_group_.GetValue(), ColorEnum::YELLOW), ColorPrint(target_group_, ColorEnum::YELLOW),
           ColorPrint(JointStrSet(exit_node_set_, ","), ColorEnum::BLUE), ColorPrint(JointStrSet(enter_node_set_, ","), ColorEnum::GREEN),
-          ColorPrint(JointStrSet(all_init_node_set_log, ","), ColorEnum::YELLOW));
+          ColorPrint(JointStrSet(all_init_node_set_log, ","), ColorEnum::YELLOW));  // 记录转换完成信息
 
-      // Update the current group and reset transition flags
-      current_group_ = target_group_;
-      is_transition_ = false;
+      current_group_ = target_group_;  // 更新当前组
+      is_transition_ = false;          // 重置转换状态
     } else {
-      // Check if all current tasks have stopped
-      all_current_task_stop_ =
-          std::all_of(current_task_set_.begin(), current_task_set_.end(), [](const auto& task) { return task->GetState() == TaskState::STANDBY; });
+      all_current_task_stop_ = std::all_of(current_task_set_.begin(), current_task_set_.end(),
+                                           [](const auto& task) { return task->GetState() == TaskState::STANDBY; });  // 检查所有当前任务是否已停止
     }
   } else {
-    // Check if all exit and enter nodes have completed their checks
-    all_node_exit_check_ =
-        std::all_of(exit_node_set_.begin(), exit_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->TryExit(); });
-    all_node_enter_check_ =
-        std::all_of(enter_node_set_.begin(), enter_node_set_.end(), [this](const auto& node) { return node_map_->GetNodePtr(node)->TryEnter(); });
+    // 检查所有节点退出和进入状态
+    all_node_exit_check_ = std::all_of(exit_node_set_.begin(), exit_node_set_.end(),
+                                       [this](const auto& node) { return node_map_->GetNodePtr(node)->TryExit(); });  // 检查退出节点
+    all_node_enter_check_ = std::all_of(enter_node_set_.begin(), enter_node_set_.end(),
+                                        [this](const auto& node) { return node_map_->GetNodePtr(node)->TryEnter(); });  // 检查进入节点
   }
 }
 

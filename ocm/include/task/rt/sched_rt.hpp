@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <linux/types.h>
@@ -17,9 +16,8 @@
 namespace openrobot::ocm::rt {
 
 /**
- * @brief Scheduling policies definitions. 调度策略定义。
+ * @brief 调度策略定义。
  *
- * Defines various scheduling policies used for setting thread priorities and behaviors.
  * 定义了用于设置线程优先级和行为的各种调度策略。
  */
 #define SCHED_OTHER 0
@@ -50,9 +48,8 @@ namespace openrobot::ocm::rt {
 #endif
 
 /**
- * @brief Scheduling flags definitions. 调度标志定义。
+ * @brief 调度标志定义。
  *
- * Defines various flags used in scheduling attributes.
  * 定义了调度属性中使用的各种标志。
  */
 #define SF_SIG_RORUN 2
@@ -62,93 +59,75 @@ namespace openrobot::ocm::rt {
 #define SF_BWRECL_OTH 32
 
 /**
- * @brief Resource limit constants. 资源限制常量。
+ * @brief 资源限制常量。
  *
- * Defines resource limit constants for deadline and real-time time.
  * 定义了截止时间和实时时间的资源限制常量。
  */
 #define RLIMIT_DLDLINE 16
 #define RLIMIT_DLRTIME 17
 
 /**
- * @brief Structure representing scheduling attributes. 表示调度属性的结构。
+ * @brief 表示调度属性的结构。
  *
- * The `sched_attr_t` structure is used to specify various scheduling parameters for a thread or process.
  * `sched_attr_t` 结构用于指定线程或进程的各种调度参数。
  */
 struct sched_attr_t {
-  __u32 size; /**< Size of the structure. 结构的大小 */
+  __u32 size; /**< 结构的大小 */
 
-  __u32 sched_policy; /**< Scheduling policy. 调度策略 */
-  __u64 sched_flags;  /**< Scheduling flags. 调度标志 */
+  __u32 sched_policy; /**< 调度策略 */
+  __u64 sched_flags;  /**< 调度标志 */
 
   /* SCHED_NORMAL, SCHED_BATCH */
-  __s32 sched_nice; /**< Nice value. 降级值 */
+  __s32 sched_nice; /**< 降级值 */
 
   /* SCHED_FIFO, SCHED_RR */
-  __u32 sched_priority; /**< Scheduling priority. 调度优先级 */
+  __u32 sched_priority; /**< 调度优先级 */
 
   /* SCHED_DEADLINE */
-  __u64 sched_runtime;  /**< Runtime for deadline scheduling. 截止调度的运行时间 */
-  __u64 sched_deadline; /**< Deadline for deadline scheduling. 截止调度的截止时间 */
-  __u64 sched_period;   /**< Period for deadline scheduling. 截止调度的周期 */
+  __u64 sched_runtime;  /**< 截止调度的运行时间 */
+  __u64 sched_deadline; /**< 截止调度的截止时间 */
+  __u64 sched_period;   /**< 截止调度的周期 */
 };
 
 /**
- * @brief Sets scheduling attributes for a thread or process. 设置线程或进程的调度属性。
+ * @brief 设置线程或进程的调度属性。
  *
- * This function invokes the `sched_setattr` system call to set the scheduling attributes.
  * 该函数调用 `sched_setattr` 系统调用以设置调度属性。
  *
- * @param pid Process ID of the thread to set attributes for. Use `0` for the calling thread.
- *            要设置属性的线程的进程 ID。使用 `0` 表示调用线程。
- * @param attr Pointer to the `sched_attr_t` structure containing the scheduling attributes.
- *             指向包含调度属性的 `sched_attr_t` 结构的指针。
- * @param flags Flags for setting attributes.
- *              设置属性的标志。
+ * @param pid 要设置属性的线程的进程 ID。使用 `0` 表示调用线程。
+ * @param attr 指向包含调度属性的 `sched_attr_t` 结构的指针。
+ * @param flags 设置属性的标志。
  *
- * @return `0` on success, `-1` on failure with `errno` set appropriately.
- *         成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
+ * @return 成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
  */
 inline int sched_setattr(const pid_t pid, const sched_attr_t* attr, const unsigned int flags) { return syscall(SYS_sched_setattr, pid, attr, flags); }
 
 /**
- * @brief Retrieves scheduling attributes for a thread or process. 获取线程或进程的调度属性。
+ * @brief 获取线程或进程的调度属性。
  *
- * This function invokes the `sched_getattr` system call to get the scheduling attributes.
  * 该函数调用 `sched_getattr` 系统调用以获取调度属性。
  *
- * @param pid Process ID of the thread to retrieve attributes for. Use `0` for the calling thread.
- *            要检索属性的线程的进程 ID。使用 `0` 表示调用线程。
- * @param attr Pointer to the `sched_attr_t` structure where the scheduling attributes will be stored.
- *             指向将存储调度属性的 `sched_attr_t` 结构的指针。
- * @param size Size of the `sched_attr_t` structure.
- *             `sched_attr_t` 结构的大小。
- * @param flags Flags for retrieving attributes.
- *              获取属性的标志。
+ * @param pid 要检索属性的线程的进程 ID。使用 `0` 表示调用线程。
+ * @param attr 指向将存储调度属性的 `sched_attr_t` 结构的指针。
+ * @param size `sched_attr_t` 结构的大小。
+ * @param flags 获取属性的标志。
  *
- * @return `0` on success, `-1` on failure with `errno` set appropriately.
- *         成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
+ * @return 成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
  */
 inline int sched_getattr(const pid_t pid, sched_attr_t* attr, unsigned int size, const unsigned int flags) {
   return syscall(SYS_sched_getattr, pid, attr, size, flags);
 }
 
 /**
- * @brief Sets the priority and scheduling policy of a thread. 设置线程的优先级和调度策略。
+ * @brief 设置线程的优先级和调度策略。
  *
- * This function uses `sched_setscheduler` to set the scheduling policy and priority of a thread.
  * 该函数使用 `sched_setscheduler` 来设置线程的调度策略和优先级。
  *
- * @param pid Process ID of the thread to set priority for. Use `0` for the calling thread.
- *            要设置优先级的线程的进程 ID。使用 `0` 表示调用线程。
- * @param sched_priority The scheduling priority to set.
- *                       要设置的调度优先级。
- * @param policy The scheduling policy to set (e.g., `SCHED_FIFO`, `SCHED_RR`).
- *               要设置的调度策略（例如，`SCHED_FIFO`，`SCHED_RR`）。
+ * @param pid 要设置优先级的线程的进程 ID。使用 `0` 表示调用线程。
+ * @param sched_priority 要设置的调度优先级。
+ * @param policy 要设置的调度策略（例如，`SCHED_FIFO`，`SCHED_RR`）。
  *
- * @return `0` on success, `-1` on failure with `errno` set appropriately.
- *         成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
+ * @return 成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
  */
 inline int set_thread_priority(const pid_t pid, size_t const sched_priority, const int policy) {
   struct sched_param param;
@@ -158,21 +137,16 @@ inline int set_thread_priority(const pid_t pid, size_t const sched_priority, con
 }
 
 /**
- * @brief Sets the CPU affinity for a thread. 设置线程的CPU亲和性。
+ * @brief 设置线程的CPU亲和性。
  *
- * This function sets the CPU affinity mask for the specified thread, restricting it to run only on the specified CPUs.
  * 该函数为指定的线程设置CPU亲和性掩码，限制其仅在指定的CPU上运行。
  *
- * @param pid Process ID of the thread to set CPU affinity for.
- *            要设置CPU亲和性的线程的进程 ID。
- * @param cpu_list A vector of CPU indices to which the thread should be bound.
- *                 线程应绑定的CPU索引向量。
+ * @param pid 要设置CPU亲和性的线程的进程 ID。
+ * @param cpu_list 线程应绑定的CPU索引向量。
  *
- * @return `0` on success, `-1` on failure with `errno` set appropriately.
- *         成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
+ * @return 成功时返回 `0`，失败时返回 `-1` 并相应地设置 `errno`。
  *
- * @note The function ensures that CPU indices are unique and within the valid range.
- *       注意：该函数确保CPU索引唯一且在有效范围内。
+ * @note 该函数确保CPU索引唯一且在有效范围内。
  */
 inline int set_thread_cpu_affinity(const pid_t pid, const std::vector<int>& cpu_list) {
   cpu_set_t set;
@@ -208,16 +182,13 @@ inline int set_thread_cpu_affinity(const pid_t pid, const std::vector<int>& cpu_
 }
 
 /**
- * @brief Sets the name of the current thread. 设置当前线程的名称。
+ * @brief 设置当前线程的名称。
  *
- * This function uses `prctl` to set the name of the calling thread. The name can be viewed using tools like `top` or `htop`.
  * 该函数使用 `prctl` 设置调用线程的名称。可以使用 `top` 或 `htop` 等工具查看名称。
  *
- * @param name The name to assign to the thread. It should not exceed 16 characters, including the null terminator.
- *             要分配给线程的名称。包括空终止符在内，不应超过16个字符。
+ * @param name 要分配给线程的名称。包括空终止符在内，不应超过16个字符。
  *
- * @note If the name exceeds the maximum allowed length, it will be truncated.
- *       注意：如果名称超过最大允许长度，将被截断。
+ * @note 如果名称超过最大允许长度，将被截断。
  */
 inline void set_thread_name(const std::string& name) {
   const auto iErr = prctl(PR_SET_NAME, name.c_str());

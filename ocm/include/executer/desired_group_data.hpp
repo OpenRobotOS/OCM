@@ -1,4 +1,3 @@
-//
 #pragma once
 
 #include <lcm/lcm_coretypes.h>
@@ -9,11 +8,10 @@ namespace openrobot::ocm {
 
 /**
  * @class DesiredGroupData
- * @brief DesiredGroupData 类
+ * @brief 描述期望组的数据类
  *
  * @details
- * The DesiredGroupData class handles encoding and decoding of desired group information.
- * DesiredGroupData 类负责编码和解码期望的组信息。
+ * DesiredGroupData 类负责对期望组的信息进行编码和解码操作。
  */
 class DesiredGroupData {
  public:
@@ -21,62 +19,43 @@ class DesiredGroupData {
 
  public:
   /**
-   * @brief Encode a message into binary form.
-   * @brief 将消息编码为二进制形式。
+   * @brief 将消息转换为二进制格式。
    *
-   * @param buf The output buffer.
-   * @param buf 输出缓冲区。
-   * @param offset Encoding starts at the byte offset into @p buf.
-   * @param offset 编码从 @p buf 的字节偏移处开始。
-   * @param maxlen Maximum number of bytes to write. This should generally be
-   * equal to getEncodedSize().
-   * @param maxlen 要写入的最大字节数。通常应等于 getEncodedSize()。
-   * @return The number of bytes encoded, or <0 on error.
-   * @return 编码的字节数，或在错误时返回 <0。
+   * @param buf 输出缓冲区指针。
+   * @param offset 编码起始的字节偏移量。
+   * @param maxlen 允许写入的最大字节数，通常应等于 getEncodedSize()。
+   * @return 编码后的字节数，若发生错误则返回小于0的值。
    */
   inline int encode(void *buf, int offset, int maxlen) const;
 
   /**
-   * @brief Check how many bytes are required to encode this message.
-   * @brief 检查编码此消息所需的字节数。
+   * @brief 获取编码此消息所需的总字节数。
    */
   inline int getEncodedSize() const;
 
   /**
-   * @brief Decode a message from binary form into this instance.
-   * @brief 从二进制形式解码消息到此实例。
+   * @brief 从二进制数据解码消息到当前实例。
    *
-   * @param buf The buffer containing the encoded message.
    * @param buf 包含编码消息的缓冲区。
-   * @param offset The byte offset into @p buf where the encoded message starts.
-   * @param offset 编码消息开始的 @p buf 的字节偏移量。
-   * @param maxlen The maximum number of bytes to read while decoding.
-   * @param maxlen 解码时要读取的最大字节数。
-   * @return The number of bytes decoded, or <0 if an error occurred.
-   * @return 解码的字节数，或在发生错误时返回 <0。
+   * @param offset 编码消息在 buf 中的起始字节偏移量。
+   * @param maxlen 解码时允许读取的最大字节数。
+   * @return 解码的字节数，若出错则返回小于0的值。
    */
   inline int decode(const void *buf, int offset, int maxlen);
 
   /**
-   * @brief Retrieve the 64-bit fingerprint identifying the structure of the message.
-   * @brief 获取用于标识消息结构的64位指纹。
+   * @brief 获取用于标识消息结构的64位哈希值。
    *
    * @details
-   * Note that the fingerprint is the same for all instances of the same
-   * message type, and is a fingerprint on the message type definition, not on
-   * the message contents.
-   *
-   * 注意，该指纹对于同一消息类型的所有实例都是相同的，并且是基于消息类型定义的指纹，而不是消息内容。
+   * 此哈希值对于同一消息类型的所有实例是一致的，基于消息类型定义而非内容。
    */
   inline static int64_t getHash();
 
   /**
-   * @brief Returns "DesiredGroupData"
-   * @brief 返回 "DesiredGroupData"
+   * @brief 返回消息类型的名称 "DesiredGroupData"。
    */
   inline static const char *getTypeName();
 
-  // LCM support functions. Users should not call these
   // LCM 支持函数。用户不应调用这些函数。
   inline int _encodeNoHash(void *buf, int offset, int maxlen) const;
   inline int _getEncodedSizeNoHash() const;
@@ -173,4 +152,3 @@ uint64_t DesiredGroupData::_computeHash(const __lcm_hash_ptr *) {
 }
 
 }  // namespace openrobot::ocm
-//
