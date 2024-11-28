@@ -147,6 +147,32 @@ class SharedMemoryTopic {
     }
   }
 
+  /**
+   * @brief 订阅指定主题并设置超时时间。
+   *
+   * 等待与 `topic_name` 关联的信号量，并在超时时间内读取共享内存段 `shm_name` 中的消息，
+   * 解码它，并使用解码后的消息调用提供的 `callback`。
+   *
+   * @tparam MessageType 订阅的消息类型。必须支持 `decode` 方法。
+   * @tparam Callback 处理接收消息的回调函数类型。
+   * @param topic_name 要订阅的主题名。
+   * @param shm_name 共享内存段的名称。
+   * @param callback 处理接收消息的回调函数。
+   * @param timeout 等待的超时时间（毫秒）。
+   */
+  template <class MessageType, typename Callback>
+  void SubscribeTimeout(const std::string& topic_name, const std::string& shm_name, Callback callback, int timeout) {
+    CheckSemExist(topic_name);
+    if (sem_map_.at(topic_name)->DecrementTimeout(timeout)) {
+      CheckSHMExist(shm_name, false);
+      MessageType msg;
+      shm_map_.at(shm_name)->Lock();
+      msg.decode(shm_map_.at(shm_name)->Get(), 0, shm_map_.at(shm_name)->GetSize());
+      shm_map_.at(shm_name)->UnLock();
+      callback(msg);
+    }
+  }
+
  private:
   /**
    * @brief 将消息写入共享内存段。

@@ -62,16 +62,16 @@ bool SharedMemorySemaphore::TryDecrement() {
   return (sem_trywait(sem_) == 0);  // 尝试减少信号量并返回结果
 }
 
-bool SharedMemorySemaphore::DecrementTimeout(uint64_t seconds, uint64_t nanoseconds) {
+bool SharedMemorySemaphore::DecrementTimeout(uint64_t milliseconds) {
   struct timespec ts;                                                                                                 // 定义时间结构
-  if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {                                                                      // 获取当前时间
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {                                                                     // 获取当前时间
     throw std::runtime_error("[SharedMemorySemaphore] Failed to get current time: " + std::string(strerror(errno)));  // 抛出异常
   }
 
-  ts.tv_sec += seconds;                  // 增加秒数
-  ts.tv_nsec += nanoseconds;             // 增加纳秒数
-  ts.tv_sec += ts.tv_nsec / 1000000000;  // 处理秒和纳秒的进位
-  ts.tv_nsec %= 1000000000;              // 确保纳秒在有效范围内
+  ts.tv_sec += milliseconds / 1000;               // 增加秒数
+  ts.tv_nsec += (milliseconds % 1000) * 1000000;  // 增加纳秒数
+  ts.tv_sec += ts.tv_nsec / 1000000000;           // 处理秒和纳秒的进位
+  ts.tv_nsec %= 1000000000;                       // 确保纳秒在有效范围内
 
   return (sem_timedwait(sem_, &ts) == 0);  // 尝试在超时内减少信号量
 }

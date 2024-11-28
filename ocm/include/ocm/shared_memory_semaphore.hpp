@@ -110,7 +110,7 @@ class SharedMemorySemaphore {
    *
    * @throws std::runtime_error 如果获取当前时间失败。
    */
-  bool DecrementTimeout(uint64_t seconds, uint64_t nanoseconds);
+  bool DecrementTimeout(uint64_t milliseconds);
 
   /**
    * @brief 获取信号量的当前值。
