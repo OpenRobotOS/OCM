@@ -5,3 +5,4 @@ log/
 .VSCodeCounter*/
 doc/
 __pycache__/
+ocm-parmgen.spec

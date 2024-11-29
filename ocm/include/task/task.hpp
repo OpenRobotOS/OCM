@@ -7,7 +7,7 @@
 #include "node/node.hpp"
 #include "task/task_base.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @class Task
@@ -126,4 +126,4 @@ class Task : public TaskBase {
   std::shared_ptr<std::vector<std::shared_ptr<NodeBase>>> node_list_;
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

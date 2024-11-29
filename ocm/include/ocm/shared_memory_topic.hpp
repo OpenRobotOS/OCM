@@ -7,7 +7,7 @@
 #include "ocm/shard_memory_data.hpp"
 #include "ocm/shared_memory_semaphore.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 /**
  * @brief 共享内存主题管理器。
  *
@@ -245,4 +245,4 @@ class SharedMemoryTopic {
   std::unordered_map<std::string, std::shared_ptr<SharedMemorySemaphore>> sem_map_;     /**< 主题名称键的信号量映射。 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

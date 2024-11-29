@@ -85,7 +85,7 @@ install(
 install(
   EXPORT OCMTargets
   FILE OCMTargets.cmake
-  NAMESPACE OPENROBOT::
+  NAMESPACE OCM::
   DESTINATION lib/cmake/OCM)
 
 # 1. 配置并安装包配置文件

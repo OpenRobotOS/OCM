@@ -7,7 +7,7 @@
 #include "debug_anywhere/debug_anywhere.hpp"
 #include "log_anywhere/log_anywhere.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @class NodeBase
@@ -127,4 +127,4 @@ class NodeBase {
   std::atomic<NodeState> state_; /**< 节点的当前状态，通过原子操作管理以确保线程安全 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

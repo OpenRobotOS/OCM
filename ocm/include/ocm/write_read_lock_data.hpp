@@ -15,7 +15,7 @@
 #include <shared_mutex>
 #include <stdexcept>
 
-namespace openrobot::ocm {
+namespace ocm {
 /**
  * @brief 读写锁保护的数据包装器。
  *
@@ -144,4 +144,4 @@ class RWLockData {
   std::shared_mutex mutex_;     /**< 用于管理读写锁的共享互斥锁。 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

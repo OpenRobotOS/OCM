@@ -1,23 +1,23 @@
 #include <format>
 #include <iostream>
 #include "task/task_base.hpp"
-using namespace openrobot::ocm;
+using namespace ocm;
 
-class Task : public openrobot::ocm::TaskBase {
+class Task : public ocm::TaskBase {
  public:
   // 构造函数，初始化任务名称、定时器类型等
-  Task() : openrobot::ocm::TaskBase("external_timer_test", openrobot::ocm::TimerType::EXTERNAL_TIMER, 0.0, false, false) {}
+  Task() : ocm::TaskBase("external_timer_test", ocm::TimerType::EXTERNAL_TIMER, 0.0, false, false) {}
 
   // 重写 Run 方法，输出当前任务的循环持续时间
   void Run() override { std::cout << std::format("[external_timer_test]{}", this->GetLoopDuration()) << std::endl; }
 };
 
 // 定义一个继承自TaskBase的任务类，用于定时任务
-class TaskTimer : public openrobot::ocm::TaskBase {
+class TaskTimer : public ocm::TaskBase {
  public:
   // 构造函数，初始化任务名称、定时器类型、周期等
   TaskTimer()
-      : openrobot::ocm::TaskBase("external_timer_test_timer", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0, false, false),
+      : ocm::TaskBase("external_timer_test_timer", ocm::TimerType::INTERNAL_TIMER, 0.0, false, false),
         sem_("external_timer_test", 0),                       // 创建信号量
         shm_("external_timer_test", true, sizeof(uint8_t)) {  // 创建共享内存
     shm_.Lock();                                              // 锁定共享内存
@@ -34,8 +34,8 @@ class TaskTimer : public openrobot::ocm::TaskBase {
   }
 
  private:
-  openrobot::ocm::SharedMemorySemaphore sem_;      // 信号量
-  openrobot::ocm::SharedMemoryData<uint8_t> shm_;  // 共享内存数据
+  ocm::SharedMemorySemaphore sem_;      // 信号量
+  ocm::SharedMemoryData<uint8_t> shm_;  // 共享内存数据
 };
 
 int main() {

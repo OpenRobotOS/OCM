@@ -10,7 +10,7 @@
 #include "ocm/shared_memory_topic.hpp"
 #include "task/task.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @class Executer
@@ -191,4 +191,4 @@ class Executer : public TaskBase {
   std::string desired_group_topic_name_;
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

@@ -11,7 +11,7 @@
 
 #include "common/struct_type.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @brief 配置DebugAnywhereTask的设置。
@@ -158,4 +158,4 @@ class DebugAnywhere {
   std::shared_ptr<DebugAnywhereTask> task_;
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

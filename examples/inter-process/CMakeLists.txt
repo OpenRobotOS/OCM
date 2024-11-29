@@ -18,5 +18,5 @@ add_executable(publish publish.cpp)
 add_executable(subscribe subscribe.cpp)
 
 # 链接 OCM 库
-target_link_libraries(publish PUBLIC OPENROBOT::OCM)
-target_link_libraries(subscribe PUBLIC OPENROBOT::OCM)
+target_link_libraries(publish PUBLIC OCM::OCM)
+target_link_libraries(subscribe PUBLIC OCM::OCM)

@@ -3,14 +3,14 @@
 #include <thread>
 
 // 示例函数，使用读锁读取数据
-void ReadData(openrobot::ocm::RWLockData<int>& rwData) {
+void ReadData(ocm::RWLockData<int>& rwData) {
   rwData.LockRead();                                             // 获取读锁
   std::cout << "Read value: " << *rwData.GetPtr() << std::endl;  // 输出读取到的值
   rwData.UnlockRead();                                           // 释放读锁
 }
 
 // 示例函数，使用写锁修改数据
-void WriteData(openrobot::ocm::RWLockData<int>& rwData, int newValue) {
+void WriteData(ocm::RWLockData<int>& rwData, int newValue) {
   rwData.LockWrite();                                                  // 获取写锁
   *rwData.GetPtr() = newValue;                                         // 修改数据
   std::cout << "Updated value to: " << *rwData.GetPtr() << std::endl;  // 输出更新后的值
@@ -18,7 +18,7 @@ void WriteData(openrobot::ocm::RWLockData<int>& rwData, int newValue) {
 }
 
 int main() {
-  openrobot::ocm::RWLockData<int> rwData(10);  // 初始化数据为10
+  ocm::RWLockData<int> rwData(10);  // 初始化数据为10
 
   // 使用多个线程来读取和写入共享数据
   std::thread t1(ReadData, std::ref(rwData));       // 线程1：读取数据

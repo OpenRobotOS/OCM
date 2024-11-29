@@ -7,7 +7,7 @@
 #include "log_anywhere/log_anywhere.hpp"
 #include "node/node.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @class NodeMap
@@ -70,4 +70,4 @@ class NodeMap final {
   std::shared_ptr<spdlog::logger> logger_ = GetLogger();
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

@@ -17,4 +17,4 @@ find_package(OCM REQUIRED)
 add_executable(NodeMap node_map.cpp)
 
 # 链接 OCM 库
-target_link_libraries(NodeMap PUBLIC OPENROBOT::OCM)
+target_link_libraries(NodeMap PUBLIC OCM::OCM)

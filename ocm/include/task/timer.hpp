@@ -8,7 +8,7 @@
  * @brief 包含用于时间测量和循环管理的TimerOnce和TimerLoop类的声明。
  */
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @class TimerOnce
@@ -131,4 +131,4 @@ class TimerLoop {
   /**< 一秒中的纳秒数 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

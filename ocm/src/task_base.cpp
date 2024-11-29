@@ -3,7 +3,7 @@
 #include "task/rt/sched_rt.hpp"
 #include "task/timer.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 SleepInternalTimer::SleepInternalTimer() {
   SetPeriod(0.01);  // 使用默认的0.01秒周期初始化内部计时器
@@ -132,9 +132,9 @@ void TaskBase::TaskDestroy() {
 }
 
 void TaskBase::Loop() {
-  openrobot::ocm::rt::set_thread_name(thread_name_);  // 设置线程名称
-  TimerOnce loop_timer;                               // 创建循环计时器
-  TimerOnce run_timer;                                // 创建运行计时器
+  ocm::rt::set_thread_name(thread_name_);  // 设置线程名称
+  TimerOnce loop_timer;                    // 创建循环计时器
+  TimerOnce run_timer;                     // 创建运行计时器
 
   while (thread_alive_.load()) {
     SetRtConfig(system_setting_stop_);   // 设置实时配置
@@ -183,12 +183,12 @@ void TaskBase::SetRtConfig(const SystemSetting& system_setting) {
   pid_t pid = gettid();  // 获取线程ID
 
   if (system_setting.priority != 0 && all_priority_enable_) {
-    openrobot::ocm::rt::set_thread_priority(pid, system_setting.priority, SCHED_FIFO);  // 设置线程优先级
+    ocm::rt::set_thread_priority(pid, system_setting.priority, SCHED_FIFO);  // 设置线程优先级
   }
 
   if (system_setting.cpu_affinity.size() > 0 && all_cpu_affinity_enable_) {
-    openrobot::ocm::rt::set_thread_cpu_affinity(pid, system_setting.cpu_affinity);  // 设置线程CPU亲和性
+    ocm::rt::set_thread_cpu_affinity(pid, system_setting.cpu_affinity);  // 设置线程CPU亲和性
   }
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

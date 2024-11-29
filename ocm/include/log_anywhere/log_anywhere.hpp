@@ -10,7 +10,7 @@
 #include <set>
 #include <string>
 #include "common/struct_type.hpp"
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @brief 将集合中的元素连接成以分隔符分隔的单个字符串。
@@ -169,4 +169,4 @@ inline std::shared_ptr<spdlog::logger> GetLogger() {
   return logger;
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

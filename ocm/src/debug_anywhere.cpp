@@ -4,7 +4,7 @@
 #include "lcm/lcm-cpp.hpp"
 #include "task/rt/sched_rt.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 DebugDataStruct::DebugDataStruct(const std::string& t, const std::vector<double>& v) : topic(t), data(v) {
   // 构造函数:初始化话题名称和数据
@@ -95,4 +95,4 @@ DebugAnywhere::DebugAnywhere() = default;
 
 DebugAnywhere::~DebugAnywhere() = default;
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

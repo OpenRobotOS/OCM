@@ -2,12 +2,12 @@
 #include <iostream>
 #include "common/struct_type.hpp"
 #include "task/task_base.hpp"
-using namespace openrobot::ocm;
+using namespace ocm;
 
-class Task : public openrobot::ocm::TaskBase {
+class Task : public ocm::TaskBase {
  public:
   // 构造函数，初始化任务名称、定时器类型等
-  Task() : openrobot::ocm::TaskBase("internal_timer_test", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0, false, false) {}
+  Task() : ocm::TaskBase("internal_timer_test", ocm::TimerType::INTERNAL_TIMER, 0.0, false, false) {}
 
   // 重写 Run 方法，输出当前任务的循环持续时间
   void Run() override { std::cout << std::format("[internal_timer_test]{}", this->GetLoopDuration()) << std::endl; }

@@ -2,12 +2,12 @@
 #include <format>
 #include <iostream>
 #include "task/task_base.hpp"
-using namespace openrobot::ocm;
+using namespace ocm;
 
-class Task : public openrobot::ocm::TaskBase {
+class Task : public ocm::TaskBase {
  public:
   // 构造函数，初始化任务名称、定时器类型等参数
-  Task() : openrobot::ocm::TaskBase("trigger_test", openrobot::ocm::TimerType::TRIGGER, 0.0, false, false) {}
+  Task() : ocm::TaskBase("trigger_test", ocm::TimerType::TRIGGER, 0.0, false, false) {}
 
   // 重写 Run 方法，输出当前任务的循环持续时间
   void Run() override { std::cout << std::format("[trigger_test]{}", this->GetLoopDuration()) << std::endl; }
@@ -18,7 +18,7 @@ int main() {
   Task timer_task;
 
   // 创建一个共享内存信号量，用于同步任务
-  openrobot::ocm::SharedMemorySemaphore sem("trigger_test", 0);
+  ocm::SharedMemorySemaphore sem("trigger_test", 0);
 
   // 设置系统设置，包括任务优先级和 CPU 亲和性
   SystemSetting system_setting;

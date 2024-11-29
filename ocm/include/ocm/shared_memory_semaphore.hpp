@@ -13,7 +13,7 @@
 #include <lcm/lcm-cpp.hpp>
 #include <string>
 
-namespace openrobot::ocm {
+namespace ocm {
 /**
  * @brief 信号量包装器，用于管理进程间同步。
  *
@@ -135,4 +135,4 @@ class SharedMemorySemaphore {
   std::string name_;     /**< 信号量的名称标识符。 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

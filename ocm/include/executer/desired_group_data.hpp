@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @class DesiredGroupData
@@ -151,4 +151,4 @@ uint64_t DesiredGroupData::_computeHash(const __lcm_hash_ptr *) {
   return (hash << 1) + ((hash >> 63) & 1);
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

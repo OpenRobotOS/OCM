@@ -4,7 +4,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace openrobot::ocm {
+namespace ocm {
 
 TimerOnce::TimerOnce() { start(); }
 
@@ -96,4 +96,4 @@ void TimerLoop::AddPeriod() {
   wake_abs_time_.tv_nsec = time_ns_;
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

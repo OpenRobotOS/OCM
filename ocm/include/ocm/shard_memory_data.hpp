@@ -6,7 +6,7 @@
 #include "common/prefix_string.hpp"
 #include "ocm/shared_memory_semaphore.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 /**
  * @brief 共享内存数据包装器。
  *
@@ -186,4 +186,4 @@ class SharedMemoryData {
   int fd_;                    /**< 共享内存的文件描述符。 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

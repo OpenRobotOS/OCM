@@ -2,7 +2,7 @@
 
 #include "task/task.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 Task::Task(const TaskSetting& task_setting, const std::shared_ptr<std::vector<std::shared_ptr<NodeBase>>>& node_list, bool all_priority_enable,
            bool all_cpu_affinity_enable)
@@ -52,4 +52,4 @@ void Task::Run() {
 
 const TaskSetting& Task::GetTaskSetting() const { return task_setting_; }  // 返回任务的配置设置
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

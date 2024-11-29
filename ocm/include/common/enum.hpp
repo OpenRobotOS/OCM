@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @enum NodeState
@@ -49,7 +49,7 @@ const std::unordered_map<std::string, TimerType> timer_type_map = {
 };
 
 /**
- * @namespace openrobot::ocm
+ * @namespace ocm
  * @brief OpenRobot操作控制模块 (OCM) 的命名空间。
  */
-}  // namespace openrobot::ocm
+}  // namespace ocm

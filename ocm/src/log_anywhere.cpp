@@ -7,7 +7,7 @@
 #include <vector>
 #include "task/rt/sched_rt.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 LogAnywhere::LogAnywhere(const LoggerConfig& config) {
   rt::set_thread_name("log_anywhere");  // 设置线程名称
@@ -48,4 +48,4 @@ LogAnywhere::~LogAnywhere() {
   spdlog::shutdown();  // 关闭spdlog，确保所有日志被刷新并释放资源
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

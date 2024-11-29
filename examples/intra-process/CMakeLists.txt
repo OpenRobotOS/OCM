@@ -18,5 +18,5 @@ add_executable(AtomicPtr AtomicPtr.cpp)
 add_executable(RWLockData RWLockData.cpp)
 
 # 链接 OCM 库
-target_link_libraries(AtomicPtr PRIVATE OPENROBOT::OCM)
-target_link_libraries(RWLockData PRIVATE OPENROBOT::OCM)
+target_link_libraries(AtomicPtr PRIVATE OCM::OCM)
+target_link_libraries(RWLockData PRIVATE OCM::OCM)

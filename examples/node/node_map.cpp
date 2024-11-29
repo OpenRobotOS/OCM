@@ -2,7 +2,7 @@
 #include <iostream>
 #include "node/node.hpp"
 
-using namespace openrobot::ocm;
+using namespace ocm;
 
 // 定义一个继承自NodeBase的NodeA类
 class NodeA : public NodeBase {

@@ -418,7 +418,7 @@ def main(input_path, output_path):
         f.write("/*\n")
         f.write(" * Automatically generate files, manual modification is strictly prohibited!\n")
         f.write(" */\n")
-        f.write("#pragma once\n#include <string>\n#include <vector>\n#include <iostream>\n#include <yaml-cpp/yaml.h>\n#include <shared_mutex>\n#include <mutex>\n\nnamespace openrobot::ocm {\n")
+        f.write("#pragma once\n#include <string>\n#include <vector>\n#include <iostream>\n#include <yaml-cpp/yaml.h>\n#include <shared_mutex>\n#include <mutex>\n\nnamespace ocm {\n")
 
     # 遍历输入路径
     for root, dirs, files in os.walk(input_path):

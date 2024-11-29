@@ -12,7 +12,7 @@
 #include "ocm/shared_memory_semaphore.hpp"
 #include "task/timer.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @brief 抽象的睡眠机制基类。
@@ -345,4 +345,4 @@ class TaskBase {
   std::shared_ptr<spdlog::logger> logger_; /**< 任务日志记录的记录器 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

@@ -12,7 +12,7 @@
 #include "common/prefix_string.hpp"
 #include "ocm/shared_memory_semaphore.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 SharedMemorySemaphore::SharedMemorySemaphore(const std::string& name, unsigned int value) { Init(name, value); }
 
@@ -97,4 +97,4 @@ void SharedMemorySemaphore::Destroy() {
 
 SharedMemorySemaphore::~SharedMemorySemaphore() = default;
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

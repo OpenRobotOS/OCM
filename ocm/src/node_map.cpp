@@ -1,6 +1,6 @@
 #include "node/node_map.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 void NodeMap::AddNode(const std::string& node_name, std::shared_ptr<NodeBase> node_ptr) {
   // 检查节点名称是否已存在于节点映射中
   if (node_map_.find(node_name) == node_map_.end()) {
@@ -20,4 +20,4 @@ const std::shared_ptr<NodeBase>& NodeMap::GetNodePtr(const std::string& key) con
   // 返回找到的节点指针
   return it->second;
 }
-}  // namespace openrobot::ocm
+}  // namespace ocm

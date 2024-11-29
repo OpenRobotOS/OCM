@@ -17,4 +17,4 @@ find_package(OCM REQUIRED)
 add_executable(debug_anywhere debug_anywhere.cpp)
 
 # 链接 OCM 库
-target_link_libraries(debug_anywhere PUBLIC OPENROBOT::OCM)
+target_link_libraries(debug_anywhere PUBLIC OCM::OCM)

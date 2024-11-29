@@ -141,7 +141,7 @@ def generate_class(class_name, data, namespaces, output_path):
     class_code.append(f"    {class_name}& operator=({class_name}&&) = default;\n")
 
     # 添加 update_from_yaml 方法
-    class_code.append("    void update_from_yaml(const YAML::Node& auto_yaml_node) {")
+    class_code.append("    void update_from_yaml(const YAML::Node& auto_yaml_node,bool check_key) {")
     for key, value in data.items():
         field_name = sanitize_field_name(key)
         field_type = determine_type(key, value, namespaces + [auto_namespace], output_path)
@@ -156,15 +156,15 @@ def generate_class(class_name, data, namespaces, output_path):
             else:
                 # elem_type 是一个自定义类，使用全限定名
                 class_code.append(f"                {elem_type} elem;")
-                class_code.append(f"                elem.update_from_yaml(item);")
+                class_code.append(f"                elem.update_from_yaml(item,check_key);")
                 class_code.append(f"                {field_name}.push_back(elem);")
             class_code.append(f"            }}")
-            class_code.append(f"        }}")
+            class_code.append(f"        }}else {{if (check_key) throw std::runtime_error(\"[ConfigCollect] Do not find key: {key} \");}}")
         elif field_type in ["bool", "int", "double", "std::string"]:
-            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {field_name} = auto_yaml_node[\"{key}\"].as<{field_type}>();")
+            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {field_name} = auto_yaml_node[\"{key}\"].as<{field_type}>(); else if (check_key) throw std::runtime_error(\"[ConfigCollect] Do not find key: {key}\" );")
         else:
             # field_type 是一个自定义类，使用全限定名
-            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {field_name}.update_from_yaml(auto_yaml_node[\"{key}\"]);")
+            class_code.append(f"        if(auto_yaml_node[\"{key}\"]) {field_name}.update_from_yaml(auto_yaml_node[\"{key}\"],check_key);")
 
     class_code.append("    }\n")
 
@@ -218,7 +218,7 @@ def generate_class(class_name, data, namespaces, output_path):
             generate_class(sub_class_name, value[0], new_namespaces, output_path)
 
     # 将生成的类写入文件，带有命名空间
-    with open(os.path.join(output_path, "yaml_load_generated_classes.hpp"), "a") as f:
+    with open(os.path.join(output_path, "parameter.hpp"), "a") as f:
         # 写入命名空间开始
         for ns in namespaces:
             f.write(f"namespace {ns} {{\n")
@@ -241,7 +241,7 @@ def print_generated_classes():
         print(class_name)
 
 def generate_config_collect_class(output_path):
-    """在 yaml_load_generated_classes.hpp 中生成线程安全的懒汉式单例 ConfigCollect 类，包含所有顶级类的私有成员变量、公共 getter 方法以及 update_from_yaml 方法。
+    """在 parameter.hpp 中生成线程安全的懒汉式单例 ConfigCollect 类，包含所有顶级类的私有成员变量、公共 getter 方法以及 update_from_yaml 方法。
     为每个成员变量增加一个单独的 update_from_yaml 函数接口，并将其放入 private。
     增加一个公共函数，可以使用字符串输入（通过 if-else 语句）调用独立的 update_from_yaml。
     调用时的字符串为成员变量名，驼峰命名转换为下划线连接的全小写形式，确保不会出现连续的下划线。
@@ -251,7 +251,7 @@ def generate_config_collect_class(output_path):
         print("没有生成任何顶级类，跳过 ConfigCollect 类的生成。")
         return
 
-    with open(os.path.join(output_path, "yaml_load_generated_classes.hpp"), "a") as f:
+    with open(os.path.join(output_path, "parameter.hpp"), "a") as f:
         # 开始生成 ConfigCollect 类
         f.write("class ConfigCollect {\npublic:\n")
         
@@ -274,7 +274,7 @@ def generate_config_collect_class(output_path):
         
         # 添加公共的 update_from_yaml 函数，接收字符串参数
         f.write("    // 根据名称更新对应的配置\n")
-        f.write("    void update_from_yaml(const std::string& name, const std::string& base_path) {\n")
+        f.write("    void update_from_yaml(const std::string& name, const std::string& base_path,bool check_file,bool check_key) {\n")
         f.write("        if (name.empty()) {\n")
         f.write("            return;\n")
         f.write("        }\n")
@@ -297,7 +297,7 @@ def generate_config_collect_class(output_path):
                 f.write(f"        if (name == \"{var_name_snake}\") {{\n")
             else:
                 f.write(f"        else if (name == \"{var_name_snake}\") {{\n")
-            f.write(f"            update_from_yaml_{var_name_snake}(base_path);\n")
+            f.write(f"            update_from_yaml_{var_name_snake}(base_path,check_file,check_key);\n")
             f.write("            matched = true;\n")
             f.write("        }\n")
         # 添加未匹配时的处理
@@ -309,7 +309,7 @@ def generate_config_collect_class(output_path):
 
         # 添加 update_from_yaml_all 函数，调用所有成员变量的更新函数
         f.write("    // 更新所有配置\n")
-        f.write("    void update_from_yaml_all(const std::string& base_path) {\n")
+        f.write("    void update_from_yaml_all(const std::string& base_path,bool check_file,bool check_key) {\n")
         for full_class_name in generated_top_classes:
             # 处理命名空间和变量名
             parts = full_class_name.split("::")
@@ -319,7 +319,7 @@ def generate_config_collect_class(output_path):
             var_name_snake = '_'.join([camel_to_snake(part) for part in parts_no_auto])
             var_name_snake = re.sub('_+', '_', var_name_snake)
             # 调用更新函数
-            f.write(f"        update_from_yaml_{var_name_snake}(base_path);\n")
+            f.write(f"        update_from_yaml_{var_name_snake}(base_path,check_file,check_key);\n")
         f.write("    }\n\n")
 
         # 添加 print 方法，增加 indent_level 参数
@@ -400,13 +400,22 @@ def generate_config_collect_class(output_path):
 
             # 添加私有的 update_from_yaml 函数
             f.write(f"    // 更新 {full_class_name} 配置\n")
-            f.write(f"    void update_from_yaml_{function_name_snake}(const std::string& base_path) {{\n")
+            f.write(f"    void update_from_yaml_{function_name_snake}(const std::string& base_path, bool check_file, bool check_key) {{\n")
             f.write("        YAML::Node auto_yaml_node;\n")
             f.write(f"        // 加载 YAML 文件\n")
-            f.write(f"        auto_yaml_node = YAML::LoadFile({yaml_path});\n")
-            f.write(f"        {{\n")
-            f.write(f"            std::unique_lock<std::shared_mutex> lock(m_{var_name_snake});\n")
-            f.write(f"            {var_name_snake}.update_from_yaml(auto_yaml_node);\n")
+            f.write(f"        std::ifstream file({yaml_path});\n")
+            f.write(f"        if (file.good()) {{ \n ")
+            f.write(f"            auto_yaml_node = YAML::LoadFile({yaml_path});\n")
+            f.write("            {\n")
+            f.write(f"                std::unique_lock<std::shared_mutex> lock(m_{var_name_snake});\n")
+            f.write(f"                {var_name_snake}.update_from_yaml(auto_yaml_node,check_key);\n")
+            f.write("            }\n")
+            f.write("        } else {\n")
+            f.write(f"            if (check_file) {{\n")
+            f.write(f"                throw std::runtime_error(\"[ConfigCollect] Do not find YAML file: \" + {yaml_path});\n")
+            f.write("            } else {\n")
+            f.write(f"                std::cerr << \"[ConfigCollect] Do not find YAML file: \" << {yaml_path} << std::endl;\n")
+            f.write("            }\n")
             f.write("        }\n")
             f.write("    }\n\n")
         f.write("};\n\n")
@@ -414,11 +423,11 @@ def generate_config_collect_class(output_path):
 
 def main(input_path, output_path):
     # 清空输出文件并写入头文件内容
-    with open(os.path.join(output_path, "yaml_load_generated_classes.hpp"), "w") as f:
+    with open(os.path.join(output_path, "parameter.hpp"), "w") as f:
         f.write("/*\n")
         f.write(" * Automatically generate files, manual modification is strictly prohibited!\n")
         f.write(" */\n")
-        f.write("#pragma once\n#include <string>\n#include <vector>\n#include <iostream>\n#include <yaml-cpp/yaml.h>\n#include <shared_mutex>\n#include <mutex>\n\nnamespace openrobot::ocm {\n")
+        f.write("#pragma once\n#include <fstream>\n#include <string>\n#include <vector>\n#include <iostream>\n#include <yaml-cpp/yaml.h>\n#include <shared_mutex>\n#include <mutex>\n\nnamespace ocm {\n")
 
     # 遍历输入路径
     for root, dirs, files in os.walk(input_path):
@@ -447,20 +456,12 @@ def main(input_path, output_path):
                     print(f"读取文件 {yaml_file} 时出错: {e}")
                     continue
 
-                # 检查 YAML 数据是否有单一顶层键
-                if isinstance(data, dict) and len(data) == 1:
-                    top_key = next(iter(data))
-                    class_name = capitalize(top_key)
-                    # 为顶层类不预先添加命名空间
-                    all_namespaces = namespaces
-                    class_data = data[top_key]
-                else:
-                    # 如果有多个顶层键，使用文件名作为类名
-                    base_name = os.path.splitext(file)[0]
-                    file_namespace = "auto_" + capitalize(base_name)+'_main'
-                    all_namespaces = namespaces
-                    class_name = capitalize(base_name)
-                    class_data = data
+                # 如果有多个顶层键，使用文件名作为类名
+                base_name = os.path.splitext(file)[0]
+                file_namespace = "auto_" + capitalize(base_name)+'_main'
+                all_namespaces = namespaces
+                class_name = capitalize(base_name)
+                class_data = data
 
                 # 生成类
                 generate_class(class_name, class_data, all_namespaces, output_path)
@@ -472,9 +473,9 @@ def main(input_path, output_path):
     print_generated_classes()
     # 生成 ConfigCollect 类
     generate_config_collect_class(output_path)
-    with open(os.path.join(output_path, "yaml_load_generated_classes.hpp"), "a") as f:
+    with open(os.path.join(output_path, "parameter.hpp"), "a") as f:
         f.write("}\n")
-    print("C++ 类已生成到 'yaml_load_generated_classes.hpp' 文件中。")
+    print("C++ 类已生成到 'parameter.hpp' 文件中。")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

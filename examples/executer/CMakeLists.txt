@@ -17,4 +17,4 @@ find_package(OCM REQUIRED)
 add_executable(ExecuterTest executer.cpp)
 
 # 链接 OCM 库
-target_link_libraries(ExecuterTest PUBLIC OPENROBOT::OCM)
+target_link_libraries(ExecuterTest PUBLIC OCM::OCM)

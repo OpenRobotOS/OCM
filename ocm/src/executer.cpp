@@ -5,7 +5,7 @@
 #include <thread>
 #include "executer/desired_group_data.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 Executer::Executer(const ExecuterConfig& executer_config, const std::shared_ptr<NodeMap>& node_map, const std::string& desired_group_topic_name)
     : TaskBase(executer_config.executer_setting.package_name, executer_config.executer_setting.timer_setting.timer_type, 0.0,
@@ -272,4 +272,4 @@ void Executer::Transition() {
   }
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

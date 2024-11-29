@@ -8,13 +8,13 @@
 #include "node_test.hpp"
 #include "yaml_template/task/yaml_load_generated_classes.hpp"
 
-using namespace openrobot::ocm;
+using namespace ocm;
 
 // 定义一个继承自TaskBase的任务类，用于定时任务
-class TaskTimer : public openrobot::ocm::TaskBase {
+class TaskTimer : public ocm::TaskBase {
  public:
   // 构造函数，初始化任务名称、定时器类型、周期等
-  TaskTimer() : openrobot::ocm::TaskBase("openrobot_task_timer", openrobot::ocm::TimerType::INTERNAL_TIMER, 0.0, false, false) {
+  TaskTimer() : ocm::TaskBase("openrobot_task_timer", ocm::TimerType::INTERNAL_TIMER, 0.0, false, false) {
     // 定义信号量名称列表
     std::vector<std::string> sem_name_list = {"executer", "resident_task_1", "standby_task_1", "standby_task_2", "standby_task_3"};
     // 创建信号量和共享内存数据
@@ -42,14 +42,14 @@ class TaskTimer : public openrobot::ocm::TaskBase {
 
  private:
   // 信号量列表
-  std::vector<openrobot::ocm::SharedMemorySemaphore> sem_;
+  std::vector<ocm::SharedMemorySemaphore> sem_;
   // 共享内存数据列表
-  std::vector<openrobot::ocm::SharedMemoryData<uint8_t>> shm_;
+  std::vector<ocm::SharedMemoryData<uint8_t>> shm_;
 };
 
 int main() {
   // 配置日志
-  openrobot::ocm::LoggerConfig log_config;
+  ocm::LoggerConfig log_config;
   log_config.log_file = "my_logs/executer_test.log";  // 日志文件路径
   log_config.queue_size = 8192;                       // 可选，默认8192
   log_config.thread_count = 1;                        // 可选，默认1
@@ -57,7 +57,7 @@ int main() {
   log_config.all_cpu_affinity_enable = true;          // 启用所有线程CPU亲和性
   log_config.system_setting.priority = 80;            // 设置系统优先级
   log_config.system_setting.cpu_affinity = {7};       // 设置系统CPU亲和性
-  auto logger_generator = std::make_shared<openrobot::ocm::LogAnywhere>(log_config);
+  auto logger_generator = std::make_shared<ocm::LogAnywhere>(log_config);
   auto logger = GetLogger();
 
   // 创建并启动定时任务

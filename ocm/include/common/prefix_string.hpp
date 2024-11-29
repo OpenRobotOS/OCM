@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace openrobot::ocm {
+namespace ocm {
 /**
  * @brief 命名前缀
  */
@@ -15,4 +15,4 @@ namespace openrobot::ocm {
  */
 inline std::string GetNamePrefix(const std::string& name) { return NAME_PREFIX + name; }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

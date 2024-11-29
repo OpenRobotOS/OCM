@@ -1,6 +1,6 @@
 #include "log_anywhere/log_anywhere.hpp"
 
-using namespace openrobot::ocm;
+using namespace ocm;
 int main() {
   // 配置日志
   LoggerConfig log_config;

@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace openrobot::ocm::rt {
+namespace ocm::rt {
 
 /**
  * @brief 调度策略定义。
@@ -195,4 +195,4 @@ inline void set_thread_name(const std::string& name) {
   (void)iErr;  // Suppress unused variable warning
 }
 
-}  // namespace openrobot::ocm::rt
+}  // namespace ocm::rt

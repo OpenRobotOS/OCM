@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace openrobot::ocm {
+namespace ocm {
 
 class DebugData {
  public:
@@ -159,4 +159,4 @@ uint64_t DebugData::_computeHash(const __lcm_hash_ptr *) {
   return (hash << 1) + ((hash >> 63) & 1);
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

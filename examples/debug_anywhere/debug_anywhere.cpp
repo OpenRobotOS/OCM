@@ -2,7 +2,7 @@
 #include <thread>
 #include "common/struct_type.hpp"
 
-using namespace openrobot::ocm;
+using namespace ocm;
 
 int main() {
   // 获取DebugAnywhere实例

@@ -17,7 +17,7 @@
 #include <iostream>
 #include <vector>
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @brief 用于锁定当前和未来的内存分配，防止它们被换出。
@@ -142,4 +142,4 @@ inline int lock_and_prefault_dynamic(size_t process_max_dynamic_memory) {
   return 0;
 }
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

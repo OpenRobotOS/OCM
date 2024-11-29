@@ -17,4 +17,4 @@ find_package(OCM REQUIRED)
 add_executable(Logger logger.cpp)
 
 # 链接 OCM 库
-target_link_libraries(Logger PUBLIC OPENROBOT::OCM)
+target_link_libraries(Logger PUBLIC OCM::OCM)

@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @brief 原子指针包装器，用于线程安全的读写操作。
@@ -95,4 +95,4 @@ class AtomicPtr {
   std::atomic<std::shared_ptr<const T>> data_ptr_; /**< 指向类型 `T` 常量对象的原子共享指针 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm

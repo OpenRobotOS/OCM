@@ -4,7 +4,7 @@
 #include <vector>
 #include "common/enum.hpp"
 
-namespace openrobot::ocm {
+namespace ocm {
 
 /**
  * @struct NodeConfig
@@ -125,4 +125,4 @@ struct ExecuterConfig {
   std::unordered_map<std::string, GroupSetting> exclusive_task_group; /**< 组名称与其对应的独占任务组设置的映射。 */
 };
 
-}  // namespace openrobot::ocm
+}  // namespace ocm
