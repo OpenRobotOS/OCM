@@ -456,7 +456,15 @@ def main(input_path, output_path):
                     print(f"读取文件 {yaml_file} 时出错: {e}")
                     continue
 
-                # 如果有多个顶层键，使用文件名作为类名
+                # # 检查 YAML 数据是否有单一顶层键
+                # if isinstance(data, dict) and len(data) == 1:
+                #     top_key = next(iter(data))
+                #     class_name = capitalize(top_key)
+                #     # 为顶层类不预先添加命名空间
+                #     all_namespaces = namespaces
+                #     class_data = data[top_key]
+                # else:
+                #     # 如果有多个顶层键，使用文件名作为类名
                 base_name = os.path.splitext(file)[0]
                 file_namespace = "auto_" + capitalize(base_name)+'_main'
                 all_namespaces = namespaces

@@ -1,6 +1,5 @@
 import posix_ipc
 import mmap
-import MyData
     
 class SharedMemorySemaphore:
     def __init__(self, name: str, initial_value: int):

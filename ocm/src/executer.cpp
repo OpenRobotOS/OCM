@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include "common/struct_type.hpp"
 #include "executer/desired_group_data.hpp"
 
 namespace ocm {
@@ -150,20 +151,32 @@ void Executer::TransitionCheck() {
         exit_node_set_.clear();                                                      // 清空退出节点集合
 
         const auto& exclusive_group_config = executer_config_.exclusive_task_group;  // 获取独占组配置
-        for (auto& task_config : exclusive_group_config.at(desired_group).task_list) {
-          const auto& task_name = task_config.second.task_name;             // 获取任务名称
-          target_task_set_.insert(standby_group_task_list_.at(task_name));  // 添加目标任务
-          for (auto& node : executer_config_.task_list.standby_group.at(task_name).node_list) {
-            target_node_set_.insert(node.node_name);  // 添加目标节点
+        if (exclusive_group_config.find(desired_group) != executer_config_.exclusive_task_group.end()) {
+          for (auto& task_config : exclusive_group_config.at(desired_group).task_list) {
+            const auto& task_name = task_config.second.task_name;
+            if (standby_group_task_list_.find(task_name) != standby_group_task_list_.end()) {
+              target_task_set_.insert(standby_group_task_list_.at(task_name));  // 添加目标任务
+            }
+            if (executer_config_.task_list.standby_group.find(task_name) != executer_config_.task_list.standby_group.end()) {
+              for (auto& node : executer_config_.task_list.standby_group.at(task_name).node_list) {
+                target_node_set_.insert(node.node_name);  // 添加目标节点
+              }
+            }
           }
         }
 
         if (current_group != "empty_init") {  // 如果当前组不为空初始化
-          for (auto& task_config : exclusive_group_config.at(current_group).task_list) {
-            const auto& task_name = task_config.second.task_name;              // 获取任务名称
-            current_task_set_.insert(standby_group_task_list_.at(task_name));  // 添加当前任务
-            for (auto& node : executer_config_.task_list.standby_group.at(task_name).node_list) {
-              current_node_set_.insert(node.node_name);  // 添加当前节点
+          if (exclusive_group_config.find(current_group) != exclusive_group_config.end()) {
+            for (auto& task_config : exclusive_group_config.at(current_group).task_list) {
+              const auto& task_name = task_config.second.task_name;  // 获取任务名称
+              if (standby_group_task_list_.find(task_name) != standby_group_task_list_.end()) {
+                current_task_set_.insert(standby_group_task_list_.at(task_name));  // 添加当前任务
+              }
+              if (executer_config_.task_list.standby_group.find(task_name) != executer_config_.task_list.standby_group.end()) {
+                for (auto& node : executer_config_.task_list.standby_group.at(task_name).node_list) {
+                  current_node_set_.insert(node.node_name);  // 添加当前节点
+                }
+              }
             }
           }
         }
@@ -220,11 +233,17 @@ void Executer::Transition() {
       // 等待所有目标任务启动
       while (!task_set_wait_to_start.empty()) {
         for (auto& task : task_list_wait_to_start) {
-          const auto& task_name = task.second->GetTaskName();                                                            // 获取任务名称
-          if (!task.first) {                                                                                             // 如果任务尚未启动
-            const auto& task_setting = executer_config_.exclusive_task_group.at(target_group_).task_list.at(task_name);  // 获取任务设置
-            bool is_pre_node_empty = task_setting.pre_node.empty();                                                      // 检查前置节点是否为空
-            const auto& pre_node_list = task_setting.pre_node;                                                           // 获取前置节点列表
+          const auto& task_name = task.second->GetTaskName();  // 获取任务名称
+          if (!task.first) {
+            GroupTaskSetting task_setting;
+            const auto& exclusive_task_group = executer_config_.exclusive_task_group;  // 获取独占组配置
+            if (exclusive_task_group.find(target_group_) != exclusive_task_group.end()) {
+              if (exclusive_task_group.at(target_group_).task_list.find(task_name) != exclusive_task_group.at(target_group_).task_list.end()) {
+                task_setting = exclusive_task_group.at(target_group_).task_list.at(task_name);  // 获取任务设置
+              }
+            }
+            bool is_pre_node_empty = task_setting.pre_node.empty();  // 检查前置节点是否为空
+            const auto& pre_node_list = task_setting.pre_node;       // 获取前置节点列表
 
             // 获取强制初始化节点集合
             std::set<std::string> force_init_node_set(task_setting.force_init_node.begin(), task_setting.force_init_node.end());
@@ -250,12 +269,18 @@ void Executer::Transition() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));  // 等待1毫秒
       }
-
+      std::set<std::string> running_node_set;  // 运行节点集合
+      for (auto& task : target_task_set_) {
+        for (auto& node : task->GetTaskSetting().node_list) {
+          running_node_set.insert(node.node_name);  // 添加运行节点
+        }
+      }
       logger_->info(
-          "[Executer] Transition from {} to group {} finished.\n      Node State:\n                 - Exit node: {} \n                 - Enter node: {} \n                 - Init node: {}",
+          "[Executer] Transition from {} to group {} finished.\n      Node State:\n                 - Exit node: {} \n                 - Enter node: {} \n                 - Init node: {}\n                 - Running node: {}\n",
           ColorPrint(current_group_.GetValue(), ColorEnum::YELLOW), ColorPrint(target_group_, ColorEnum::YELLOW),
           ColorPrint(JointStrSet(exit_node_set_, ","), ColorEnum::BLUE), ColorPrint(JointStrSet(enter_node_set_, ","), ColorEnum::GREEN),
-          ColorPrint(JointStrSet(all_init_node_set_log, ","), ColorEnum::YELLOW));  // 记录转换完成信息
+          ColorPrint(JointStrSet(all_init_node_set_log, ","), ColorEnum::YELLOW),
+          ColorPrint(JointStrSet(running_node_set, ","), ColorEnum::GREEN));  // 记录转换完成信息
 
       current_group_ = target_group_;  // 更新当前组
       is_transition_ = false;          // 重置转换状态
