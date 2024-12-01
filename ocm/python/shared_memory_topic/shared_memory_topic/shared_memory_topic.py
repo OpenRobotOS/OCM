@@ -118,30 +118,30 @@ class SharedMemoryTopic:
         for topic_name in topic_names:
             self.PublishSem(topic_name)
             
-    def Subscribe(self, topic_name: str, shm_name: str, callback):
+    def Subscribe(self, topic_name: str, shm_name: str, callback, lcm_type):
         self.CheckSemExist(topic_name)
         self.sem[topic_name].Decrement()
         self.CheckSHMExist(shm_name, False)
         self.shm[shm_name].Lock()
-        data=MyData.MyData.decode(self.shm[shm_name].ReadData())
+        data=lcm_type.decode(self.shm[shm_name].ReadData())
         self.shm[shm_name].UnLock()
         callback(data)
         
-    def SubscribeNoWait(self, topic_name: str, shm_name: str, callback):
+    def SubscribeNoWait(self, topic_name: str, shm_name: str, callback,lcm_type):
         self.CheckSemExist(topic_name)
         if self.sem[topic_name].TryDecrement():
             self.CheckSHMExist(shm_name, False)
             self.shm[shm_name].Lock()
-            data=MyData.MyData.decode(self.shm[shm_name].ReadData())
+            data=lcm_type.decode(self.shm[shm_name].ReadData())
             self.shm[shm_name].UnLock()
             callback(data)
 
-    def SubscribeTimeout(self, topic_name: str, shm_name: str, callback, timeout: int):
+    def SubscribeTimeout(self, topic_name: str, shm_name: str, callback, lcm_type, timeout: int):
         self.CheckSemExist(topic_name)
         if self.sem[topic_name].DecrementTimeout(timeout):
             self.CheckSHMExist(shm_name, False)
             self.shm[shm_name].Lock()
-            data=MyData.MyData.decode(self.shm[shm_name].ReadData())
+            data=lcm_type.decode(self.shm[shm_name].ReadData())
             self.shm[shm_name].UnLock()
             callback(data)
             
