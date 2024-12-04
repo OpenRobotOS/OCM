@@ -23,8 +23,11 @@ Executer::Executer(const ExecuterConfig& executer_config, const std::shared_ptr<
       task_start_flag_(true),
       all_current_task_stop_(false),
       desired_group_topic_name_(desired_group_topic_name) {
-  logger_ = GetLogger();                                              // 获取日志记录器
-  desired_group_topic_ = std::make_shared<SharedMemoryTopic>();       // 创建共享内存主题
+  logger_ = GetLogger();                                                // 获取日志记录器
+  desired_group_topic_lcm_ = std::make_shared<SharedMemoryTopicLcm>();  // 创建共享内存主题
+#ifdef SUPPORT_ROS2_CPP
+  desired_group_topic_ros2_ = std::make_shared<SharedMemoryTopicRos2>();  // 创建共享内存主题
+#endif
   SetPeriod(executer_config_.executer_setting.timer_setting.period);  // 设置周期
   TaskStart(executer_config_.executer_setting.system_setting);        // 启动任务
 }
@@ -125,10 +128,15 @@ void Executer::InitTask() {
 
 void Executer::Run() {
   // 订阅期望组数据
-  desired_group_topic_->SubscribeNoWait<DesiredGroupData>(
-      desired_group_topic_name_, desired_group_topic_name_,
+  desired_group_topic_lcm_->SubscribeNoWait<DesiredGroupData>(
+      desired_group_topic_name_ + "_lcm", desired_group_topic_name_ + "_lcm",
       [this](const DesiredGroupData& desired_group) { desired_group_ = desired_group.desired_group; });  // 更新期望组
-  TransitionCheck();                                                                                     // 检查状态转换
+#ifdef SUPPORT_ROS2_CPP
+  desired_group_topic_ros2_->SubscribeNoWait<DesiredGroupData>(
+      desired_group_topic_name_ + "_ros2", desired_group_topic_name_ + "_ros2",
+      [this](const DesiredGroupData& desired_group) { desired_group_ = desired_group.desired_group; });  // 更新期望组
+#endif
+  TransitionCheck();  // 检查状态转换
 
   if (is_transition_) {
     Transition();  // 执行状态转换

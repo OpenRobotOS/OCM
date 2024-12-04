@@ -11,52 +11,52 @@ namespace openrobot::ocm {
 /**
  * @brief 共享内存主题管理器。
  *
- * `SharedMemoryTopic` 类简化了使用共享内存发布和订阅主题的过程。
+ * `SharedMemoryTopicLcm` 类简化了使用共享内存发布和订阅主题的过程。
  * 它管理多个共享内存段和信号量，允许不同主题之间高效的进程间通信。
  */
-class SharedMemoryTopic {
+class SharedMemoryTopicLcm {
  public:
   /**
    * @brief 默认构造函数。
    *
-   * 初始化 `SharedMemoryTopic` 实例。
+   * 初始化 `SharedMemoryTopicLcm` 实例。
    */
-  SharedMemoryTopic() = default;
+  SharedMemoryTopicLcm() = default;
 
   /**
    * @brief 删除的拷贝构造函数。
    *
-   * 防止复制 `SharedMemoryTopic` 实例以保持唯一所有权语义。
+   * 防止复制 `SharedMemoryTopicLcm` 实例以保持唯一所有权语义。
    */
-  SharedMemoryTopic(const SharedMemoryTopic&) = delete;
+  SharedMemoryTopicLcm(const SharedMemoryTopicLcm&) = delete;
 
   /**
    * @brief 删除的拷贝赋值运算符。
    *
-   * 防止将一个 `SharedMemoryTopic` 赋值给另一个以保持唯一所有权语义。
+   * 防止将一个 `SharedMemoryTopicLcm` 赋值给另一个以保持唯一所有权语义。
    */
-  SharedMemoryTopic& operator=(const SharedMemoryTopic&) = delete;
+  SharedMemoryTopicLcm& operator=(const SharedMemoryTopicLcm&) = delete;
 
   /**
    * @brief 删除的移动构造函数。
    *
-   * 防止移动 `SharedMemoryTopic` 实例以保持唯一所有权语义。
+   * 防止移动 `SharedMemoryTopicLcm` 实例以保持唯一所有权语义。
    */
-  SharedMemoryTopic(SharedMemoryTopic&&) = delete;
+  SharedMemoryTopicLcm(SharedMemoryTopicLcm&&) = delete;
 
   /**
    * @brief 删除的移动赋值运算符。
    *
-   * 防止移动赋值 `SharedMemoryTopic` 实例以保持唯一所有权语义。
+   * 防止移动赋值 `SharedMemoryTopicLcm` 实例以保持唯一所有权语义。
    */
-  SharedMemoryTopic& operator=(SharedMemoryTopic&&) = delete;
+  SharedMemoryTopicLcm& operator=(SharedMemoryTopicLcm&&) = delete;
 
   /**
    * @brief 析构函数。
    *
    * 默认析构函数确保共享内存主题的正确清理。
    */
-  ~SharedMemoryTopic() = default;
+  ~SharedMemoryTopicLcm() = default;
 
   /**
    * @brief 发布单个消息到指定主题。
@@ -71,7 +71,7 @@ class SharedMemoryTopic {
    * @throws std::runtime_error 如果写入共享内存或发布信号量失败。
    */
   template <class MessageType>
-  void Publish(const std::string& topic_name, const std::string& shm_name, const MessageType* msg) {
+  void Publish(const std::string& topic_name, const std::string& shm_name, const MessageType& msg) {
     WriteDataToSHM(shm_name, msg);
     PublishSem(topic_name);
   }
@@ -186,7 +186,7 @@ class SharedMemoryTopic {
    * @throws std::runtime_error 如果写入共享内存失败。
    */
   template <class MessageType>
-  void WriteDataToSHM(const std::string& shm_name, const MessageType* msg) {
+  void WriteDataToSHM(const std::string& shm_name, const MessageType& msg) {
     int datalen = msg->getEncodedSize();
     CheckSHMExist(shm_name, true, datalen);
     shm_map_.at(shm_name)->Lock();

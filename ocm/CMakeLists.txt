@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 if(POLICY CMP0111)
   cmake_policy(SET CMP0111 NEW)
 endif()
@@ -7,6 +7,14 @@ project(
   VERSION 1.0
   DESCRIPTION "One Communication Middleware"
   LANGUAGES CXX)
+
+if(NOT DEFINED SUPPORT_ROS2)
+  set(SUPPORT_ROS2 ON CACHE BOOL "Enable or disable ROS 2 support" FORCE)
+endif()
+
+if(SUPPORT_ROS2)
+  add_definitions(-DSUPPORT_ROS2_CPP)
+endif()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE
@@ -31,6 +39,7 @@ message(STATUS "Final CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 if(NOT DEFINED CMAKE_PREFIX_PATH OR CMAKE_PREFIX_PATH STREQUAL "")
   set(CMAKE_PREFIX_PATH
       "/opt/openrobotlib/third_party"
+      "/opt/ros/jazzy"
       CACHE PATH "Default prefix path" FORCE)
   message(
     STATUS
@@ -50,6 +59,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(lcm REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(yaml-cpp REQUIRED)
+if(SUPPORT_ROS2)
+  find_package(rclcpp REQUIRED)
+  find_package(rosidl_typesupport_cpp REQUIRED)
+  find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)
+  find_package(rosidl_default_generators REQUIRED)
+  find_package(rosidl_runtime_c REQUIRED)
+endif()
+
 
 add_compile_options(-no-pie -fPIC -O3 -march=native)
 
@@ -60,13 +77,20 @@ add_library(OCM SHARED ${OCM_SOURCES})
 
 # 1. 指定头文件路径
 target_include_directories(
-  OCM PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-             $<INSTALL_INTERFACE:include> # 安装时的头文件路径
+  OCM PUBLIC 
+  ${rosidl_typesupport_cpp_INCLUDE_DIRS}
+  ${rosidl_typesupport_fastrtps_cpp_INCLUDE_DIRS}
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include> # 安装时的头文件路径
 )
+
+
 
 # 1. 链接外部库
 target_link_libraries(OCM PUBLIC ${LCM_NAMESPACE}lcm spdlog::spdlog
-                                 yaml-cpp::yaml-cpp)
+                                 yaml-cpp::yaml-cpp rclcpp::rclcpp ${rosidl_typesupport_cpp_LIBRARIES}
+                                 ${rosidl_typesupport_fastrtps_cpp_LIBRARIES}
+                                 ${rosidl_runtime_c_LIBRARIES})
 
 # 1. 安装头文件
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
@@ -97,9 +121,11 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion)
 
 configure_package_config_file(
-  ${CMAKE_MODULE_PATH}/OCMConfig.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
-  INSTALL_DESTINATION lib/cmake/OCM)
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/OCMConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/OCM
+)
+  
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/OCMConfigVersion.cmake"
