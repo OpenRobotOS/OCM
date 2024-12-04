@@ -8,9 +8,6 @@
 #include "node/node_map.hpp"
 #include "ocm/atomic_ptr.hpp"
 #include "ocm/shared_memory_topic_lcm.hpp"
-#ifdef SUPPORT_ROS2_CPP
-  #include "ocm/shared_memory_topic_ros2.hpp"
-#endif
 #include "task/task.hpp"
 
 namespace openrobot::ocm {
@@ -187,9 +184,6 @@ class Executer : public TaskBase {
    * @brief 期望任务组的共享内存主题。
    */
   std::shared_ptr<SharedMemoryTopicLcm> desired_group_topic_lcm_;
-#ifdef SUPPORT_ROS2_CPP
-  std::shared_ptr<SharedMemoryTopicRos2> desired_group_topic_ros2_;
-#endif
 
   /**
    * @brief 期望任务组主题的名称。

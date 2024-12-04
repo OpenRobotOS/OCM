@@ -9,17 +9,15 @@ project(
   LANGUAGES CXX)
 
 if(NOT DEFINED SUPPORT_ROS2)
-  set(SUPPORT_ROS2 ON CACHE BOOL "Enable or disable ROS 2 support" FORCE)
+  set(SUPPORT_ROS2 OFF CACHE BOOL "Enable or disable ROS 2 support" FORCE)
 endif()
 
 if(SUPPORT_ROS2)
-  add_definitions(-DSUPPORT_ROS2_CPP)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_BUILD_TYPE
-      "Release"
-      CACHE STRING "Choose Release or Debug" FORCE)
+  if(NOT ROS_DISTRO OR ROS_DISTRO STREQUAL "")
+    message(FATAL_ERROR "Error: ROS_DISTRO is empty!")
+  else()
+    message(STATUS "ROS_DISTRO is: ${ROS_DISTRO}")
+  endif()
 endif()
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -39,7 +37,7 @@ message(STATUS "Final CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 if(NOT DEFINED CMAKE_PREFIX_PATH OR CMAKE_PREFIX_PATH STREQUAL "")
   set(CMAKE_PREFIX_PATH
       "/opt/openrobotlib/third_party"
-      "/opt/ros/jazzy"
+      "/opt/ros/${ROS_DISTRO}"
       CACHE PATH "Default prefix path" FORCE)
   message(
     STATUS
@@ -87,11 +85,15 @@ target_include_directories(
 
 
 # 1. 链接外部库
-target_link_libraries(OCM PUBLIC ${LCM_NAMESPACE}lcm spdlog::spdlog
+if(SUPPORT_ROS2)
+  target_link_libraries(OCM PUBLIC ${LCM_NAMESPACE}lcm spdlog::spdlog
                                  yaml-cpp::yaml-cpp rclcpp::rclcpp ${rosidl_typesupport_cpp_LIBRARIES}
                                  ${rosidl_typesupport_fastrtps_cpp_LIBRARIES}
                                  ${rosidl_runtime_c_LIBRARIES})
-
+else()
+  target_link_libraries(OCM PUBLIC ${LCM_NAMESPACE}lcm spdlog::spdlog
+                                 yaml-cpp::yaml-cpp)
+endif()
 # 1. 安装头文件
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 
