@@ -7,7 +7,7 @@
 #include "common/struct_type.hpp"
 #include "node/node_map.hpp"
 #include "ocm/atomic_ptr.hpp"
-#include "ocm/shared_memory_topic.hpp"
+#include "ocm/shared_memory_topic_lcm.hpp"
 #include "task/task.hpp"
 
 namespace ocm {
@@ -183,7 +183,7 @@ class Executer : public TaskBase {
   /**
    * @brief 期望任务组的共享内存主题。
    */
-  std::shared_ptr<SharedMemoryTopic> desired_group_topic_;
+  std::shared_ptr<SharedMemoryTopicLcm> desired_group_topic_lcm_;
 
   /**
    * @brief 期望任务组主题的名称。

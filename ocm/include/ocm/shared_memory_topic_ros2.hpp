@@ -6,57 +6,60 @@
 #include <vector>
 #include "ocm/shard_memory_data.hpp"
 #include "ocm/shared_memory_semaphore.hpp"
+#include "rclcpp/serialization.hpp"
+#include "rclcpp/serialized_message.hpp"
+#include "rcutils/types.h"
 
-namespace ocm {
+namespace openrobot::ocm {
 /**
  * @brief 共享内存主题管理器。
  *
- * `SharedMemoryTopic` 类简化了使用共享内存发布和订阅主题的过程。
+ * `SharedMemoryTopicRos2` 类简化了使用共享内存发布和订阅主题的过程。
  * 它管理多个共享内存段和信号量，允许不同主题之间高效的进程间通信。
  */
-class SharedMemoryTopic {
+class SharedMemoryTopicRos2 {
  public:
   /**
    * @brief 默认构造函数。
    *
-   * 初始化 `SharedMemoryTopic` 实例。
+   * 初始化 `SharedMemoryTopicRos2` 实例。
    */
-  SharedMemoryTopic() = default;
+  SharedMemoryTopicRos2() = default;
 
   /**
    * @brief 删除的拷贝构造函数。
    *
-   * 防止复制 `SharedMemoryTopic` 实例以保持唯一所有权语义。
+   * 防止复制 `SharedMemoryTopicRos2` 实例以保持唯一所有权语义。
    */
-  SharedMemoryTopic(const SharedMemoryTopic&) = delete;
+  SharedMemoryTopicRos2(const SharedMemoryTopicRos2&) = delete;
 
   /**
    * @brief 删除的拷贝赋值运算符。
    *
-   * 防止将一个 `SharedMemoryTopic` 赋值给另一个以保持唯一所有权语义。
+   * 防止将一个 `SharedMemoryTopicRos2` 赋值给另一个以保持唯一所有权语义。
    */
-  SharedMemoryTopic& operator=(const SharedMemoryTopic&) = delete;
+  SharedMemoryTopicRos2& operator=(const SharedMemoryTopicRos2&) = delete;
 
   /**
    * @brief 删除的移动构造函数。
    *
-   * 防止移动 `SharedMemoryTopic` 实例以保持唯一所有权语义。
+   * 防止移动 `SharedMemoryTopicRos2` 实例以保持唯一所有权语义。
    */
-  SharedMemoryTopic(SharedMemoryTopic&&) = delete;
+  SharedMemoryTopicRos2(SharedMemoryTopicRos2&&) = delete;
 
   /**
    * @brief 删除的移动赋值运算符。
    *
-   * 防止移动赋值 `SharedMemoryTopic` 实例以保持唯一所有权语义。
+   * 防止移动赋值 `SharedMemoryTopicRos2` 实例以保持唯一所有权语义。
    */
-  SharedMemoryTopic& operator=(SharedMemoryTopic&&) = delete;
+  SharedMemoryTopicRos2& operator=(SharedMemoryTopicRos2&&) = delete;
 
   /**
    * @brief 析构函数。
    *
    * 默认析构函数确保共享内存主题的正确清理。
    */
-  ~SharedMemoryTopic() = default;
+  ~SharedMemoryTopicRos2() = default;
 
   /**
    * @brief 发布单个消息到指定主题。
@@ -71,7 +74,7 @@ class SharedMemoryTopic {
    * @throws std::runtime_error 如果写入共享内存或发布信号量失败。
    */
   template <class MessageType>
-  void Publish(const std::string& topic_name, const std::string& shm_name, const MessageType* msg) {
+  void Publish(const std::string& topic_name, const std::string& shm_name, const MessageType& msg) {
     WriteDataToSHM(shm_name, msg);
     PublishSem(topic_name);
   }
@@ -116,8 +119,23 @@ class SharedMemoryTopic {
     sem_map_.at(topic_name)->Decrement();
     CheckSHMExist(shm_name, false);
     MessageType msg;
+    rclcpp::Serialization<MessageType> serializer;
     shm_map_.at(shm_name)->Lock();
-    msg.decode(shm_map_.at(shm_name)->Get(), 0, shm_map_.at(shm_name)->GetSize());
+
+    // 直接使用共享内存中的数据作为序列化消息的缓冲区
+    rclcpp::SerializedMessage serialized_msg{rmw_get_zero_initialized_serialized_message()};
+    serialized_msg.get_rcl_serialized_message().buffer = shm_map_.at(shm_name)->Get();
+    serialized_msg.get_rcl_serialized_message().buffer_length = shm_map_.at(shm_name)->GetSize();
+    serialized_msg.get_rcl_serialized_message().buffer_capacity = shm_map_.at(shm_name)->GetSize();
+
+    // 零拷贝反序列化
+    serializer.deserialize_message(&serialized_msg, &msg);
+
+    // 避免序列化消息析构时释放共享内存
+    serialized_msg.get_rcl_serialized_message().buffer = nullptr;
+    serialized_msg.get_rcl_serialized_message().buffer_length = 0;
+    serialized_msg.get_rcl_serialized_message().buffer_capacity = 0;
+
     shm_map_.at(shm_name)->UnLock();
     callback(msg);
   }
@@ -140,8 +158,23 @@ class SharedMemoryTopic {
     if (sem_map_.at(topic_name)->TryDecrement()) {
       CheckSHMExist(shm_name, false);
       MessageType msg;
+      rclcpp::Serialization<MessageType> serializer;
       shm_map_.at(shm_name)->Lock();
-      msg.decode(shm_map_.at(shm_name)->Get(), 0, shm_map_.at(shm_name)->GetSize());
+
+      // 直接使用共享内存中的数据作为序列化消息的缓冲区
+      rclcpp::SerializedMessage serialized_msg{rmw_get_zero_initialized_serialized_message()};
+      serialized_msg.get_rcl_serialized_message().buffer = shm_map_.at(shm_name)->Get();
+      serialized_msg.get_rcl_serialized_message().buffer_length = shm_map_.at(shm_name)->GetSize();
+      serialized_msg.get_rcl_serialized_message().buffer_capacity = shm_map_.at(shm_name)->GetSize();
+
+      // 零拷贝反序列化
+      serializer.deserialize_message(&serialized_msg, &msg);
+
+      // 避免序列化消息析构时释放共享内存
+      serialized_msg.get_rcl_serialized_message().buffer = nullptr;
+      serialized_msg.get_rcl_serialized_message().buffer_length = 0;
+      serialized_msg.get_rcl_serialized_message().buffer_capacity = 0;
+
       shm_map_.at(shm_name)->UnLock();
       callback(msg);
     }
@@ -166,8 +199,23 @@ class SharedMemoryTopic {
     if (sem_map_.at(topic_name)->DecrementTimeout(timeout)) {
       CheckSHMExist(shm_name, false);
       MessageType msg;
+      rclcpp::Serialization<MessageType> serializer;
       shm_map_.at(shm_name)->Lock();
-      msg.decode(shm_map_.at(shm_name)->Get(), 0, shm_map_.at(shm_name)->GetSize());
+
+      // 直接使用共享内存中的数据作为序列化消息的缓冲区
+      rclcpp::SerializedMessage serialized_msg{rmw_get_zero_initialized_serialized_message()};
+      serialized_msg.get_rcl_serialized_message().buffer = shm_map_.at(shm_name)->Get();
+      serialized_msg.get_rcl_serialized_message().buffer_length = shm_map_.at(shm_name)->GetSize();
+      serialized_msg.get_rcl_serialized_message().buffer_capacity = shm_map_.at(shm_name)->GetSize();
+
+      // 零拷贝反序列化
+      serializer.deserialize_message(&serialized_msg, &msg);
+
+      // 避免序列化消息析构时释放共享内存
+      serialized_msg.get_rcl_serialized_message().buffer = nullptr;
+      serialized_msg.get_rcl_serialized_message().buffer_length = 0;
+      serialized_msg.get_rcl_serialized_message().buffer_capacity = 0;
+
       shm_map_.at(shm_name)->UnLock();
       callback(msg);
     }
@@ -186,11 +234,14 @@ class SharedMemoryTopic {
    * @throws std::runtime_error 如果写入共享内存失败。
    */
   template <class MessageType>
-  void WriteDataToSHM(const std::string& shm_name, const MessageType* msg) {
-    int datalen = msg->getEncodedSize();
+  void WriteDataToSHM(const std::string& shm_name, const MessageType& msg) {
+    rclcpp::Serialization<MessageType> serializer;
+    rclcpp::SerializedMessage serialized_msg;
+    serializer.serialize_message(&msg, &serialized_msg);
+    int datalen = serialized_msg.size();
     CheckSHMExist(shm_name, true, datalen);
     shm_map_.at(shm_name)->Lock();
-    msg->encode(shm_map_.at(shm_name)->Get(), 0, datalen);
+    std::memcpy(shm_map_.at(shm_name)->Get(), serialized_msg.get_rcl_serialized_message().buffer, datalen);
     shm_map_.at(shm_name)->UnLock();
   }
 
@@ -245,4 +296,4 @@ class SharedMemoryTopic {
   std::unordered_map<std::string, std::shared_ptr<SharedMemorySemaphore>> sem_map_;     /**< 主题名称键的信号量映射。 */
 };
 
-}  // namespace ocm
+}  // namespace openrobot::ocm

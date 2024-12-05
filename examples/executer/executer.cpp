@@ -1,6 +1,7 @@
 #include "executer/executer.hpp"
 #include <common/struct_type.hpp>
 #include <memory>
+#include <ocm/shared_memory_topic_lcm.hpp>
 #include "common/enum.hpp"
 #include "executer/desired_group_data.hpp"
 #include "log_anywhere/log_anywhere.hpp"
@@ -154,7 +155,7 @@ int main() {
   executer.InitTask();    // 初始化任务
 
   // 发布期望的任务组
-  SharedMemoryTopic desired_group_topic;
+  SharedMemoryTopicLcm desired_group_topic;
   DesiredGroupData desired_group_data;
   desired_group_data.desired_group = "passive";  // 设置期望组为"passive"
   desired_group_topic.Publish("executer_desired_group", "executer_desired_group", &desired_group_data);

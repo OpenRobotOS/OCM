@@ -1,12 +1,12 @@
 #include <iostream>
 #include "MyData.hpp"
-#include "ocm/shared_memory_topic.hpp"
+#include "ocm/shared_memory_topic_lcm.hpp"
 
 using namespace ocm;
 
 int main() {
   // 创建共享内存主题对象
-  SharedMemoryTopic topic;
+  SharedMemoryTopicLcm topic;
 
   // 创建数据对象，必须为LCM消息
   MyData data;
