@@ -3,9 +3,9 @@
 <package format="3">
   <name>ros2_msg</name>
   <version>0.1.0</version>
-  <description>Protocol for agibot-z1 lower body.</description>
+  <description>test ros2 msg</description>
 
-  <maintainer email="wtudio@outlook.com">wtudio</maintainer>
+  <maintainer email="hxrkpib@foxmail.com">hxrkpib</maintainer>
 
   <license>Apache License 2.0</license>
 
