@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 project(lcm_cpp_example)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(lcm REQUIRED)
+
 include(${LCM_USE_FILE})
 
 # Put all message definition files in the type directory in one list

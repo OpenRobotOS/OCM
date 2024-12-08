@@ -28,7 +28,7 @@ target_link_libraries(main
   ros2_msg::ros2_msg__rosidl_typesupport_cpp
   ros2_msg::ros2_msg__rosidl_typesupport_fastrtps_cpp
   ros2_msg::ros2_msg__rosidl_typesupport_introspection_cpp
-  OPENROBOT::OCM
+  OCM::OCM
 )
 
 # 安装可执行文件

@@ -122,12 +122,19 @@ write_basic_package_version_file(
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion)
 
-configure_package_config_file(
+if(SUPPORT_ROS2)
+  configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/OCMConfigRos.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/OCM
+  )
+else()
+  configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/OCMConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
     INSTALL_DESTINATION lib/cmake/OCM
-)
-  
+  )
+endif()
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/OCMConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/OCMConfigVersion.cmake"

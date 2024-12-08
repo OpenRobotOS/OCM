@@ -10,6 +10,9 @@ class NodeA : public NodeBase {
   // 构造函数，初始化节点名称
   NodeA(const std::string& node_name) : NodeBase(node_name) {}
 
+  // 重写Construct方法，构造节点
+  void Construct() override { std::cout << "NodeA Construct" << std::endl; }
+
   // 重写Init方法，初始化节点
   void Init() override { std::cout << "NodeA Init" << std::endl; }
 

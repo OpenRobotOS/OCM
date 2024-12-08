@@ -1,6 +1,6 @@
 #include "MyData.hpp"
 #include "ocm/shared_memory_topic_lcm.hpp"
-using namespace openrobot::ocm;
+using namespace ocm;
 
 int main() {
   // 创建共享内存主题对象

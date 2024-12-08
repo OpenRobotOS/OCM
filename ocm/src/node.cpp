@@ -14,4 +14,11 @@ NodeState NodeBase::GetState() const {
 const std::string& NodeBase::GetNodeName() const {
   return node_name_;  // 返回节点名称
 }
+bool NodeBase::GetIsConstruct() const {
+  return is_construct_;  // 返回节点是否构造
+}
+void NodeBase::SetIsConstruct(bool is_construct) {
+  is_construct_ = is_construct;  // 设置节点是否构造
+}
+
 }  // namespace ocm

@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
-  openrobot::ocm::SharedMemoryTopicRos2 topic;
+  ocm::SharedMemoryTopicRos2 topic;
   // 使用 std_msgs::msg::String 进行序列化
   rclcpp::Serialization<ros2_msg::msg::MyMessage> serializer;
   ros2_msg::msg::MyMessage msg;

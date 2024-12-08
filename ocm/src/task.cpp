@@ -38,6 +38,10 @@ std::set<std::string> Task::Init(const std::set<std::string>& init_node_list) {
 void Task::Run() {
   for (auto& node : *node_list_) {
     const auto& node_name = node->GetNodeName();
+    if (!node->GetIsConstruct()) {
+      node->Construct();           // 构造节点
+      node->SetIsConstruct(true);  // 设置节点构造标志
+    }
     if (node_init_flag_.at(node_name)) {
       node->Init();                           // 初始化节点
       node_init_flag_.at(node_name) = false;  // 重置节点初始化标志

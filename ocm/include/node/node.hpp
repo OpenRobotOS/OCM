@@ -51,6 +51,15 @@ class NodeBase {
   virtual ~NodeBase() = default;
 
   /**
+   * @brief 构造节点。
+   *
+   * 纯虚方法，必须由派生类重写以执行节点的任何必要构造步骤。
+   *
+   * @note 此方法在节点开始执行之前调用。
+   */
+  virtual void Construct() = 0;
+
+  /**
    * @brief 初始化节点。
    *
    * 纯虚方法，必须由派生类重写以执行节点的任何必要初始化步骤。
@@ -119,10 +128,25 @@ class NodeBase {
    */
   const std::string& GetNodeName() const;
 
+  /**
+   * @brief 获取节点是否构造。
+   *
+   * @return 节点是否构造的布尔值。
+   */
+  bool GetIsConstruct() const;
+
+  /**
+   * @brief 设置节点是否构造。
+   *
+   * @param is_construct 节点是否构造的布尔值。
+   */
+  void SetIsConstruct(bool is_construct);
+
   std::shared_ptr<spdlog::logger> log_anywhere_ = GetLogger();  // 获取日志实例
   DebugAnywhere& debug_anywhere_ = DebugAnywhere::getInstance();
 
  private:
+  bool is_construct_ = false;
   std::string node_name_;        /**< 节点的唯一名称标识符 */
   std::atomic<NodeState> state_; /**< 节点的当前状态，通过原子操作管理以确保线程安全 */
 };
