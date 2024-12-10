@@ -66,7 +66,7 @@ OCM 是一个用于机器人通信的中间件，提供了一个通用的通信�
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake .. # 支持ROS2消息类型  -DSUPPORT_ROS2=ON -DROS_DISTRO=$ROS_DISTRO
 sudo make install -j # 默认安装到/opt/openrobotlib/ocm，默认依赖位置/opt/openrobotlib/third_party
 # 可选python共享内存话题安装
 pip install posix_ipc
